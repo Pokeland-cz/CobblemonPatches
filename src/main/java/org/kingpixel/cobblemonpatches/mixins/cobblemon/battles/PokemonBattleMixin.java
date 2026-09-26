@@ -9,6 +9,7 @@ import com.cobblemon.mod.common.api.battles.model.actor.FleeableBattleActor;
 import com.cobblemon.mod.common.api.events.CobblemonEvents;
 import com.cobblemon.mod.common.api.events.battles.BattleFledEvent;
 import com.cobblemon.mod.common.battles.actor.PlayerBattleActor;
+import com.cobblemon.mod.common.battles.pokemon.BattlePokemon;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import kotlin.Pair;
 import kotlin.Unit;
@@ -61,7 +62,10 @@ public abstract class PokemonBattleMixin {
 
     if (checkWildEntitiesRemoved(self)) {
       Cobblemon.LOGGER.warn("Wild Pokémon entity removed from world during battle {}. Ending battle safely.", self.getBattleId());
-      self.checkFlee();
+      PlayerBattleActor playerActor = findAnyPlayer(self.getActors());
+      postBattleFledEvent(self, playerActor);
+      sendFleeMessages(self.getActors());
+      self.stop();
       return;
     }
 
@@ -70,16 +74,49 @@ public abstract class PokemonBattleMixin {
 
   @Unique
   private boolean checkWildEntitiesRemoved(PokemonBattle self) {
-    if (!self.isPvW()) return false;
+    if (!self.isPvW() || self.getEnded() || !self.getDispatches().isEmpty() || isWildDefeated(self)) {
+      return false;
+    }
+
     for (BattleActor actor : self.getActors()) {
-      if (actor.getType() == ActorType.WILD && actor instanceof EntityBackedBattleActor<?> entityActor) {
-        Entity entity = entityActor.getEntity();
-        if (entity != null && !entity.isRemoved()) {
+      if (actor.getType() == ActorType.WILD && hasAlivePokemon(actor) && isEntityPresent(actor)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  @Unique
+  private boolean hasAlivePokemon(BattleActor actor) {
+    for (BattlePokemon pokemon : actor.getPokemonList()) {
+      if (pokemon.getHealth() > 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  @Unique
+  private boolean isEntityPresent(BattleActor actor) {
+    if (actor instanceof EntityBackedBattleActor<?> entityActor) {
+      Entity entity = entityActor.getEntity();
+      return entity != null && !entity.isRemoved();
+    }
+    return false;
+  }
+
+  @Unique
+  private boolean isWildDefeated(PokemonBattle self) {
+    boolean hasWildActor = false;
+    for (BattleActor actor : self.getActors()) {
+      if (actor.getType() == ActorType.WILD) {
+        hasWildActor = true;
+        if (hasAlivePokemon(actor)) {
           return false;
         }
       }
     }
-    return true;
+    return hasWildActor;
   }
 
   @Unique
@@ -116,6 +153,9 @@ public abstract class PokemonBattleMixin {
   @Overwrite
   public void checkFlee() {
     PokemonBattle self = (PokemonBattle) (Object) this;
+    if (self.getEnded() || !self.getDispatches().isEmpty() || isWildDefeated(self)) {
+      return;
+    }
 
     List<FleeableBattleActor> fleeableActors = new ArrayList<>();
     List<EntityBackedBattleActor<?>> playerEntities = new ArrayList<>();
@@ -171,8 +211,9 @@ public abstract class PokemonBattleMixin {
   @Unique
   private boolean allWildOutOfRange(List<FleeableBattleActor> fleeableActors,
                                     List<EntityBackedBattleActor<?>> playerEntities) {
-    if (fleeableActors.isEmpty()) return true;
+    if (fleeableActors.isEmpty()) return false;
 
+    boolean checkedAny = false;
     for (FleeableBattleActor pokemonActor : fleeableActors) {
       Pair<ServerWorld, Vec3d> wp = pokemonActor.getWorldAndPosition();
       if (wp == null) continue;
@@ -183,9 +224,10 @@ public abstract class PokemonBattleMixin {
 
       if (fleeDist == -1f) return false;
 
+      checkedAny = true;
       if (nearestPlayerDistance(pos, world, playerEntities) < fleeDist) return false;
     }
-    return true;
+    return checkedAny;
   }
 
   /**
