@@ -85,8 +85,9 @@ public abstract class TypeGemCoreBlockMixin {
   @Unique
   private Pair<Boolean, Integer> performOptimizedGrow(StructureWorldAccess level, BlockPos pos,
                                                       Random random, boolean forced) {
-    BlockPos[] gemPositions = new BlockPos[16];
-    BlockState[] gemStates = new BlockState[16];
+    int maxCapacity = Math.max(16, TypeGemCoreBlock.MAX_CONNECTED_GEMS);
+    BlockPos[] gemPositions = new BlockPos[maxCapacity];
+    BlockState[] gemStates = new BlockState[maxCapacity];
     int gemCount = collectConnectedGems(level, pos, gemPositions, gemStates);
 
     if (gemCount >= TypeGemCoreBlock.MAX_CONNECTED_GEMS) {

@@ -20,17 +20,26 @@ public class OpsUtil {
   /**
    * Retrieves or initializes the cached RegistryOps instance for NbtElement operations.
    *
-   * @return the cached DynamicOps instance, or null if initialization fails
+   * @return the cached DynamicOps instance, or NbtOps.INSTANCE if unavailable
    */
   public static DynamicOps<NbtElement> getOps() {
-    if (ops == null) {
+    if (ops == null && CobblemonPatches.server != null) {
       try {
         DynamicRegistryManager registryManager = CobblemonPatches.server.getRegistryManager();
-        ops = RegistryOps.of(NbtOps.INSTANCE, registryManager);
+        if (registryManager != null) {
+          ops = RegistryOps.of(NbtOps.INSTANCE, registryManager);
+        }
       } catch (Exception e) {
         CobblemonPatches.LOGGER.error("Failed to create RegistryOps", e);
       }
     }
-    return ops;
+    return ops != null ? ops : NbtOps.INSTANCE;
+  }
+
+  /**
+   * Clears the cached DynamicOps instance when the server stops or lifecycle resets.
+   */
+  public static void clear() {
+    ops = null;
   }
 }

@@ -50,7 +50,7 @@ public abstract class PokemonPastureBlockEntityTickerMixin {
       return 0;
     }
 
-    if ((world.getTime() + Math.abs(pos.hashCode())) % 20L != 0L) {
+    if (Math.floorMod(world.getTime() + pos.hashCode(), 20L) != 0L) {
       BlockState state = world.getBlockState(pos);
       if (state.contains(PastureBlock.Companion.getON()) && Boolean.TRUE.equals(state.get(PastureBlock.Companion.getON()))) {
         return 1;

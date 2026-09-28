@@ -35,7 +35,7 @@ public abstract class PCBlockEntityTickerMixin {
       return;
     }
 
-    if ((world.getTime() + Math.abs(pos.hashCode())) % 20L != 0L) {
+    if (Math.floorMod(world.getTime() + pos.hashCode(), 20L) != 0L) {
       ci.cancel();
     }
   }

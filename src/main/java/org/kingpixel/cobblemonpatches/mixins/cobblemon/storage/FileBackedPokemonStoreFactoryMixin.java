@@ -28,8 +28,6 @@ public abstract class FileBackedPokemonStoreFactoryMixin {
 
   @Shadow public abstract void save(PokemonStore<?> store, DynamicRegistryManager registryAccess);
 
-  @Unique private static final int MAX_SAVES_PER_TICK = 1;
-
   /**
    * Spreads dirty Pokemon store saving incrementally across game ticks rather than in a single synchronous burst.
    *
@@ -58,12 +56,18 @@ public abstract class FileBackedPokemonStoreFactoryMixin {
     if (self.passedTicks >= targetTicks) {
       if (!self.dirtyStores.isEmpty()) {
         DynamicRegistryManager registryManager = it.getServer().getRegistryManager();
-        for (int i = 0; i < MAX_SAVES_PER_TICK && !self.dirtyStores.isEmpty(); i++) {
+        int maxSaves = Math.max(1, CobblemonPatches.getConfig().getAutosaveStoresPerTick());
+        for (int i = 0; i < maxSaves && !self.dirtyStores.isEmpty(); i++) {
           PokemonStore<?> store = self.dirtyStores.iterator().next();
           if (CobblemonPatches.getConfig().isDebug()) {
             CobblemonPatches.LOGGER.info("Autosaving dirty PokemonStore {} (remaining: {})", store.getUuid(), self.dirtyStores.size() - 1);
           }
-          self.save(store, registryManager);
+          try {
+            self.save(store, registryManager);
+          } catch (Exception e) {
+            CobblemonPatches.LOGGER.error("Failed to autosave PokemonStore {}", store.getUuid(), e);
+            self.dirtyStores.remove(store);
+          }
         }
       }
 

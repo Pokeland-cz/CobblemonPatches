@@ -61,7 +61,8 @@ For a detailed technical breakdown of every patch, see [`FIXEDS.md`](FIXEDS.md).
 ```json
 {
   "debug": false,
-  "battleInactivityTimeoutMessage": "&cBattle timed out due to inactivity."
+  "battleInactivityTimeoutMessage": "&cBattle timed out due to inactivity.",
+  "autosaveStoresPerTick": 2
 }
 ```
  
@@ -71,7 +72,7 @@ For a detailed technical breakdown of every patch, see [`FIXEDS.md`](FIXEDS.md).
  
 1. Ensure **Minecraft 1.21.1** and **Fabric Loader** (>= 0.16.x) are installed.
 2. Ensure **Cobblemon** (1.8.1+) is present in your `mods` folder.
-3. Place the `CobblemonPatches-1.1.9.jar` file into your `mods/` directory.
+3. Place the `CobblemonPatches-1.2.0.jar` file into your `mods/` directory.
 4. Start your client or server.
  
 ---

@@ -36,7 +36,7 @@ public class CobblemonPatches implements ModInitializer {
       🔑 Caching for showdownId() is enabled.
       📦 PCBox and PCStore iterator optimizations are active.
       ⚔️ Optimizations for PokemonBattle's isPvN(), isPvP(), and isPvW() are enabled.
-      Optimization PatureBlocks.
+      Optimization PastureBlocks.
       👤 Asynchronous loading and caching for NPC player textures are enabled.
       """);
     events();
@@ -47,5 +47,9 @@ public class CobblemonPatches implements ModInitializer {
    */
   private void events() {
     ServerLifecycleEvents.SERVER_STARTING.register(minecraftServer -> CobblemonPatches.server = minecraftServer);
+    ServerLifecycleEvents.SERVER_STOPPED.register(minecraftServer -> {
+      CobblemonPatches.server = null;
+      OpsUtil.clear();
+    });
   }
 }

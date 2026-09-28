@@ -9,6 +9,8 @@ import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.cobblemon.mod.common.pokemon.activestate.ActivePokemonState;
 import com.cobblemon.mod.common.pokemon.activestate.InactivePokemonState;
+import com.cobblemon.mod.common.api.battles.model.PokemonBattle;
+import com.cobblemon.mod.common.battles.BattleRegistry;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -16,7 +18,10 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.ai.brain.MemoryModuleState;
 import net.minecraft.entity.passive.TameableShoulderEntity;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.world.World;
+import org.kingpixel.cobblemonpatches.CobblemonPatches;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
@@ -26,17 +31,18 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.ArrayDeque;
 import java.util.Queue;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Mixin into {@link PokemonEntity} optimizing persistence checks, deferred despawn processing
- * on server world tick end, owner entity caching, and world saving logic.
+ * on server tick end, owner entity caching, and world saving logic.
  */
 @Mixin(PokemonEntity.class)
 public abstract class PokemonEntityMixin extends TameableShoulderEntity {
 
-  @Unique private static Queue<PokemonEntity> DESPAWN_QUEUE;
+  @Unique private static final Queue<PokemonEntity> DESPAWN_QUEUE = new ConcurrentLinkedQueue<>();
 
   @Shadow private Pokemon pokemon;
   @Shadow private PokemonPastureBlockEntity.Tethering tethering;
@@ -71,16 +77,15 @@ public abstract class PokemonEntityMixin extends TameableShoulderEntity {
   }
 
   /**
-   * Registers a server world tick end listener to flush and safely discard queued despawning Pokemon entities.
+   * Registers a server tick end listener to flush and safely discard queued despawning Pokemon entities.
    *
    * @param ci callback info
    */
   @Inject(method = "<clinit>", at = @At("TAIL"))
-  private static void registerEndWorldTickListener(CallbackInfo ci) {
-    DESPAWN_QUEUE = new ArrayDeque<>();
-    ServerTickEvents.END_WORLD_TICK.register(world -> {
-      while (!DESPAWN_QUEUE.isEmpty()) {
-        PokemonEntity pokemonEntity = DESPAWN_QUEUE.remove();
+  private static void registerEndServerTickListener(CallbackInfo ci) {
+    ServerTickEvents.END_SERVER_TICK.register(server -> {
+      PokemonEntity pokemonEntity;
+      while ((pokemonEntity = DESPAWN_QUEUE.poll()) != null) {
         if (canSafelyDiscard(pokemonEntity)) {
           discardAndDeactivate(pokemonEntity);
         }
@@ -90,17 +95,57 @@ public abstract class PokemonEntityMixin extends TameableShoulderEntity {
 
   @Unique
   private static boolean canSafelyDiscard(PokemonEntity entity) {
-    return entity != null && !entity.isRemoved() && entity.getBattleId() == null && !entity.isBattling();
+    if (entity == null || entity.isRemoved()) {
+      return false;
+    }
+    UUID ownerUuid = entity.getOwnerUuid();
+    if (ownerUuid != null && entity.getTethering() == null) {
+      MinecraftServer server = CobblemonPatches.server != null ? CobblemonPatches.server : entity.getServer();
+      if (server != null && server.getPlayerManager().getPlayer(ownerUuid) == null) {
+        return true;
+      }
+    }
+    return entity.getBattleId() == null && !entity.isBattling();
   }
 
   @Unique
   private static void discardAndDeactivate(PokemonEntity entity) {
+    if (entity.getBattleId() != null) {
+      PokemonBattle battle = BattleRegistry.getBattle(entity.getBattleId());
+      if (battle != null && !battle.getEnded()) {
+        battle.stop();
+      }
+    }
     if (!entity.isRemoved()) {
       entity.discard();
     }
     Pokemon poke = entity.getPokemon();
     if (poke != null && poke.getState() instanceof ActivePokemonState) {
       poke.setState(new InactivePokemonState());
+    }
+  }
+
+  /**
+   * Periodically validates that player-owned party Pokemon entities do not linger in the world
+   * if their owner player has disconnected or switched servers.
+   *
+   * @param ci callback info
+   */
+  @Inject(method = "tick", at = @At("HEAD"))
+  private void guardOrphanedPokemon(CallbackInfo ci) {
+    if (this.getWorld().isClient() || this.isRemoved() || this.age % 20 != 0) {
+      return;
+    }
+
+    UUID ownerUuid = this.getOwnerUuid();
+    if (ownerUuid != null && this.tethering == null) {
+      MinecraftServer server = this.getServer();
+      if (server != null && server.isRunning()) {
+        ServerPlayerEntity player = server.getPlayerManager().getPlayer(ownerUuid);
+        if (player == null || player.isDisconnected() || player.isRemoved()) {
+          discardAndDeactivate((PokemonEntity) (Object) this);
+        }
+      }
     }
   }
 
@@ -118,7 +163,7 @@ public abstract class PokemonEntityMixin extends TameableShoulderEntity {
    */
   @WrapOperation(method = "onStoppedTrackingBy", at = @At(value = "INVOKE", target = "Lcom/cobblemon/mod/common/entity/pokemon/PokemonEntity;remove(Lnet/minecraft/entity/Entity$RemovalReason;)V"))
   public void cobblemonpatches$doNotCallEntityRemove(PokemonEntity pokemonEntity, RemovalReason reason, Operation<Void> original) {
-    if (this.isRemoved() || pokemonEntity.getBattleId() != null || pokemonEntity.isBattling()) return;
+    if (this.isRemoved()) return;
     DESPAWN_QUEUE.add(pokemonEntity);
   }
 

@@ -105,6 +105,28 @@ public abstract class PokemonStoreMixin<T extends StorePosition> {
   private Pokemon cobblemon$optimizedGet(UUID uuid, Operation<Pokemon> original) {
     return cobblemon$uuidIndex.get(uuid, original::call);
   }
+
+  /**
+   * Wraps store initialization to invalidate all cached Pokémon UUID entries.
+   *
+   * @param original The original initialize operation.
+   */
+  @WrapMethod(method = "initialize()V")
+  private void onInitialize(Operation<Void> original) {
+    original.call();
+    cobblemon$uuidIndex.invalidateAll();
+  }
+
+  /**
+   * Wraps rebuildPokemonByUuid to invalidate all cached Pokémon UUID entries when rebuilt.
+   *
+   * @param original The original rebuild operation.
+   */
+  @WrapMethod(method = "rebuildPokemonByUuid()V")
+  private void onRebuildPokemonByUuid(Operation<Void> original) {
+    original.call();
+    cobblemon$uuidIndex.invalidateAll();
+  }
 }
 
 

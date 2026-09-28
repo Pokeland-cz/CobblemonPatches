@@ -11,9 +11,13 @@ import com.cobblemon.mod.common.api.events.battles.BattleFledEvent;
 import com.cobblemon.mod.common.battles.actor.PlayerBattleActor;
 import com.cobblemon.mod.common.battles.pokemon.BattlePokemon;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
+import com.cobblemon.mod.common.pokemon.Pokemon;
+import com.cobblemon.mod.common.pokemon.activestate.ActivePokemonState;
+import com.cobblemon.mod.common.pokemon.activestate.InactivePokemonState;
 import kotlin.Pair;
 import kotlin.Unit;
 import net.minecraft.entity.Entity;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
@@ -32,6 +36,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static com.cobblemon.mod.common.util.LocalizationUtilsKt.battleLang;
 
@@ -46,6 +51,60 @@ public abstract class PokemonBattleMixin {
 
   @Unique
   private int inactivityTicks = 0;
+
+  /**
+   * Safely discards and deactivates all battle Pokemon belonging to disconnected players upon battle termination.
+   *
+   * @param ci callback info
+   */
+  @Inject(method = "end", at = @At("TAIL"))
+  private void cleanupDisconnectedPlayerEntities(CallbackInfo ci) {
+    PokemonBattle self = (PokemonBattle) (Object) this;
+    for (BattleActor actor : self.getActors()) {
+      if (actor instanceof PlayerBattleActor playerActor && isPlayerOffline(playerActor)) {
+        for (BattlePokemon battlePokemon : playerActor.getPokemonList()) {
+          discardAndDeactivateBattlePokemon(battlePokemon);
+        }
+      }
+    }
+  }
+
+  @Unique
+  private boolean isPlayerOffline(PlayerBattleActor playerActor) {
+    ServerPlayerEntity player = playerActor.getEntity();
+    if (player == null || player.isDisconnected() || player.isRemoved()) {
+      return true;
+    }
+    return CobblemonPatches.server != null
+      && CobblemonPatches.server.getPlayerManager().getPlayer(playerActor.getUuid()) == null;
+  }
+
+  @Unique
+  private void discardAndDeactivateBattlePokemon(BattlePokemon battlePokemon) {
+    if (battlePokemon == null) return;
+
+    PokemonEntity directEntity = battlePokemon.getEntity();
+    if (directEntity != null && !directEntity.isRemoved()) {
+      directEntity.discard();
+    }
+
+    safelyDiscardPokemon(battlePokemon.getEffectedPokemon());
+    if (battlePokemon.getOriginalPokemon() != battlePokemon.getEffectedPokemon()) {
+      safelyDiscardPokemon(battlePokemon.getOriginalPokemon());
+    }
+  }
+
+  @Unique
+  private void safelyDiscardPokemon(Pokemon pokemon) {
+    if (pokemon == null) return;
+    PokemonEntity entity = pokemon.getEntity();
+    if (entity != null && !entity.isRemoved()) {
+      entity.discard();
+    }
+    if (pokemon.getState() instanceof ActivePokemonState) {
+      pokemon.setState(new InactivePokemonState());
+    }
+  }
 
   /**
    * Watchdog on battle ticking to detect removed wild entities and check inactivity timeout.

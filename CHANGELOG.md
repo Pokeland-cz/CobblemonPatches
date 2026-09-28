@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.2.0] - 27-09-2026
+
+> [!WARNING]
+> **Testing Required**: Please test this build thoroughly in a testing/staging environment before deploying to
+> production servers.
+
+### Optimizations & Anti-Lag
+
+- **Safe Pokémon Deactivation on Despawn**: Untracked player Pokémon and disconnected entities are now safely queued for deferred cleanup and transitioned cleanly to an inactive state at the end of the server tick, preventing orphaned active entity states, memory leaks, and potential duplication exploits.
+- **Thread-Safe Despawn Processing**: Migrated entity despawn queuing to lock-free concurrent collections (`ConcurrentLinkedQueue`) drained strictly at the end of the full server tick (`END_SERVER_TICK`), eliminating race conditions and desyncs between dimensions.
+- **Optimized Battle Flee Resolution**: Improved the flee pipeline for wild Pokémon battles, eliminating redundant dispatch loops and resolving fled battles immediately and cleanly.
+- **Configurable Autosave Batch Size**: Introduced `autosaveStoresPerTick` (default `2`) in `cobblemonpatches.json`, allowing server administrators to fine-tune dirty store saving throughput to match their hardware and player count.
+- **Robust Block Ticker Distribution**: Switched coordinate distribution calculations in PC and Pasture block tickers to `Math.floorMod`, ensuring smooth, uniform tick staggering across all coordinate boundaries.
+
+### Bug Fixes & Stability
+
+- **Server Lifecycle Memory Leak Fix**: Added a `SERVER_STOPPED` lifecycle listener that cleanly releases static server instances and cached `DynamicOps`, preventing memory leaks across server reloads and restarts.
+- **Store Cache Consistency**: Automatically invalidates cached Pokémon UUID entries whenever a storage instance is re-initialized or rebuilt, eliminating ghost Pokémon lookups.
+- **Fault-Tolerant Autosave Pipeline**: Added isolated error handling during dirty store serialization so that individual store save failures can never crash the server tick.
+- **Battle Faint vs. Flee Resolution**: Fixed an issue where fainting a wild Pokémon in battle could erroneously trigger wild entity removal flee handling instead of normal battle resolution.
+- **Empty Actor Flee Guard**: Corrected flee distance evaluations so that battles with empty or uninitialized fleeable actor lists no longer trigger false-positive flee events.
+- **Battle Inactivity Watchdog**: Integrated an automated 120-second inactivity watchdog that cleanly resolves and terminates hung or locked battles, broadcasting a configurable chat notification and restoring player control without requiring server restarts.
+- **Prevent Orphaned Pokémon Duplication Exploits**: Fixed an exploit where switching servers (e.g. via `/spawn`) during battle animations left player Pokémon entities stranded in the world, allowing duplicate held items to be taken. Battle conclusion now purges and deactivates active battle Pokémon belonging to offline players, `onStoppedTrackingBy` unconditionally queues disconnecting player Pokémon for despawn, and a periodic tick guard eliminates lingering orphaned party Pokémon.
+- **Async Entity Removal Thread Safety**: Added `EntityRemoveAsyncMixin` to automatically marshal off-thread `Entity#remove` and `Entity#discard` calls (such as from Netty IO disconnect handlers in trainer/NPC mods like Radical Cobblemon Trainers) onto the main server thread, preventing `AsyncCatcher` errors and chunk entity manager race conditions.
+
 ## [1.1.9] - 17-09-2026
 
 > [!WARNING]
