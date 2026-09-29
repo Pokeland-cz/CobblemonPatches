@@ -8,6 +8,9 @@
 
 ### Optimizations & Anti-Lag
 
+- **Eliminated POI Stream Lag in Habitat & Slathered Detectors**: Resolved severe server lag spikes caused by Cobblemon's `HabitatBlockDetector` scanning an oversized 128-block radius (>2,000 chunk sections) via eager `Stream.toList()`. Clamped the POI search radius to a realistic 48 blocks (>95% fewer chunk sections scanned) and introduced a 10-second per-chunk Caffeine cache for resolved influences in both `HabitatBlockDetector` and `SaccharineLogSlatheredDetector`, eliminating repeated multi-second stream evaluations.
+- **Bypassed Redundant Block Detector Voxel Loops**: Optimized `CobblemonSpawningZoneGenerator` to identify when registered detectors return empty lists for per-block checks (`detectFromBlock`), bypassing tens of thousands of empty method dispatches, list allocations, and `addAll` calls per 3D spawning zone.
+- **Throttled Habitat Block Ticking**: Throttled `ActivatedHabitatSpawning` with `Trigger.TICK` in `HabitatBlockEntity` from firing spawner calculations every single tick (20 Hz) down to once every 20 ticks (1 Hz), uniformly staggered across ticks by coordinate hash.
 - **Safe Pokémon Deactivation on Despawn**: Untracked player Pokémon and disconnected entities are now safely queued for deferred cleanup and transitioned cleanly to an inactive state at the end of the server tick, preventing orphaned active entity states, memory leaks, and potential duplication exploits.
 - **Thread-Safe Despawn Processing**: Migrated entity despawn queuing to lock-free concurrent collections (`ConcurrentLinkedQueue`) drained strictly at the end of the full server tick (`END_SERVER_TICK`), eliminating race conditions and desyncs between dimensions.
 - **Optimized Battle Flee Resolution**: Improved the flee pipeline for wild Pokémon battles, eliminating redundant dispatch loops and resolving fled battles immediately and cleanly.

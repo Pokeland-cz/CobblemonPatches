@@ -95,6 +95,8 @@ public abstract class TypeGemCoreBlockMixin {
         return new Pair<>(false, gemCount);
       }
       updateStuntState(level, gemPositions, gemCount, true);
+    } else {
+      updateStuntState(level, gemPositions, gemCount, false);
     }
 
     int[] gemIndices = new int[gemCount];
