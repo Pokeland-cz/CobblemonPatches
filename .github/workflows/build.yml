@@ -56,7 +56,8 @@ jobs:
 
       - name: Send Discord Notifications
         run: |
-          FILE=$(ls fabric/build/libs/*.jar | grep -v "sources" | grep -v "dev-shadow" | head -n1)
+          FABRIC_FILE=$(ls fabric/build/libs/*.jar | grep -v "sources" | grep -v "dev-shadow" | head -n1)
+          NEOFORGE_FILE=$(ls neoforge/build/libs/*.jar | grep -v "sources" | grep -v "dev-shadow" | head -n1)
 
           # Extraer changelog
           BASE=$(echo "$TAG" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
@@ -66,8 +67,28 @@ jobs:
             flag {print}
           ')
 
+          if [ -z "$CHANGELOG_CONTENT" ]; then
+            CHANGELOG_CONTENT="Automated release for version $TAG"
+          fi
+
+          CHANGELOG_FILE="build/changelog_${TAG}.txt"
+          CHANGELOG_LEN=${#CHANGELOG_CONTENT}
+          HAS_CHANGELOG_FILE=false
+
+          mkdir -p build
+
+          # Discord embed description limit: 4096 caracteres
+          if [ "$CHANGELOG_LEN" -gt 3800 ]; then
+            printf "%s\n" "$CHANGELOG_CONTENT" > "$CHANGELOG_FILE"
+            TRUNCATED=$(printf "%s" "$CHANGELOG_CONTENT" | head -c 3500)
+            EMBED_DESC=$(printf "%s\n\n📄 **Full changelog attached as a file...**" "$TRUNCATED")
+            HAS_CHANGELOG_FILE=true
+          else
+            EMBED_DESC="$CHANGELOG_CONTENT"
+          fi
+
           # Generar JSON embed correctamente escapado
-          JSON_PAYLOAD=$(jq -nc --arg tag "$TAG" --arg changelog "$CHANGELOG_CONTENT" \
+          JSON_PAYLOAD=$(jq -nc --arg tag "$TAG" --arg changelog "$EMBED_DESC" \
             '{content: "@everyone 🎉 New Release!
             If you want contribute to the project, feel free to check the code on:
             [GitHub Repository](<https://github.com/zonary123/CobblemonPatches>)
@@ -85,22 +106,37 @@ jobs:
           echo "Embed JSON:"
           echo "$JSON_PAYLOAD"
 
-          # 1️⃣ Enviar primero el embed
-          curl -s -X POST "$DISCORD_COBBLEMON" \
-            -H "Content-Type: application/json" \
-            -d "$JSON_PAYLOAD"
+          send_discord() {
+            local WEBHOOK="$1"
+            if [ -z "$WEBHOOK" ]; then
+              return 0
+            fi
 
-          # 2️⃣ Enviar después el archivo como segundo mensaje
-          curl -s -X POST "$DISCORD_COBBLEMON" \
-            -F "file=@${FILE}"
+            # 1️⃣ Enviar primero el embed
+            curl -s -X POST "$WEBHOOK" \
+              -H "Content-Type: application/json" \
+              -d "$JSON_PAYLOAD"
 
-          # Repetir para el otro webhook de Discord
-          # 1️⃣ Enviar primero el embed
-          curl -s -X POST "$DISCORD_ZONARY123" \
-            -H "Content-Type: application/json" \
-            -d "$JSON_PAYLOAD"
+            # 2️⃣ Si el changelog es extenso, enviar el archivo de texto
+            if [ "$HAS_CHANGELOG_FILE" = true ] && [ -f "$CHANGELOG_FILE" ]; then
+              curl -s -X POST "$WEBHOOK" \
+                -F "file=@${CHANGELOG_FILE}"
+            fi
 
-          # 2️⃣ Enviar después el archivo como segundo mensaje
-          curl -s -X POST "$DISCORD_ZONARY123" \
-            -F "file=@${FILE}"
+            # 3️⃣ Enviar archivo Fabric
+            if [ -n "$FABRIC_FILE" ] && [ -f "$FABRIC_FILE" ]; then
+              curl -s -X POST "$WEBHOOK" \
+                -F "file=@${FABRIC_FILE}"
+            fi
+
+            # 4️⃣ Enviar archivo NeoForge
+            if [ -n "$NEOFORGE_FILE" ] && [ -f "$NEOFORGE_FILE" ]; then
+              curl -s -X POST "$WEBHOOK" \
+                -F "file=@${NEOFORGE_FILE}"
+            fi
+          }
+
+          send_discord "$DISCORD_COBBLEMON"
+          send_discord "$DISCORD_ZONARY123"
+
 
