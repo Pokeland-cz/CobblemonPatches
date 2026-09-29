@@ -4,10 +4,10 @@ import com.cobblemon.mod.common.block.multiblock.FossilMultiblockStructure;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.DynamicOps;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
+import net.minecraft.world.item.ItemStack;
 import org.kingpixel.cobblemonpatches.CobblemonPatches;
 import org.kingpixel.cobblemonpatches.OpsUtil;
 import org.spongepowered.asm.mixin.Mixin;
@@ -37,23 +37,23 @@ public abstract class FossilMultiblockStructureMixin {
       target = "Lcom/mojang/serialization/Codec;encodeStart(Lcom/mojang/serialization/DynamicOps;Ljava/lang/Object;)Lcom/mojang/serialization/DataResult;"
     )
   )
-  private <T> DataResult<NbtElement> cobblemonpatches$encodeItemStackSafe(
+  private <T> DataResult<Tag> cobblemonpatches$encodeItemStackSafe(
     Codec<T> codec,
     DynamicOps<?> ops,
     Object value
   ) {
     if (!(value instanceof ItemStack stack)) {
       CobblemonPatches.LOGGER.warn("FossilMultiblockStructure received non-ItemStack value during writeToNbt: {}", value);
-      return DataResult.success(new NbtCompound());
+      return DataResult.success(new CompoundTag());
     }
 
     if (stack.isEmpty() || stack.getCount() <= 0) {
       CobblemonPatches.LOGGER.warn("Skipping invalid fossil machine stack during writeToNbt (item={}, count={})", stack.getItem(), stack.getCount());
-      return DataResult.success(new NbtCompound());
+      return DataResult.success(new CompoundTag());
     }
 
-    stack.remove(DataComponentTypes.ENCHANTMENTS);
-    stack.remove(DataComponentTypes.STORED_ENCHANTMENTS);
+    stack.remove(DataComponents.ENCHANTMENTS);
+    stack.remove(DataComponents.STORED_ENCHANTMENTS);
 
     return ItemStack.CODEC.encodeStart(
       OpsUtil.getOps(),

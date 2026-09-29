@@ -2,10 +2,6 @@ package org.kingpixel.cobblemonpatches.mixins.cobblemon.campfire;
 
 import com.cobblemon.mod.common.block.campfirepot.CampfireBlock;
 import com.cobblemon.mod.common.block.entity.CampfireBlockEntity;
-import net.minecraft.block.BlockState;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 import org.kingpixel.cobblemonpatches.PatchesUtil;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -15,6 +11,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Objects;
 import java.util.WeakHashMap;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 
 /**
  * Optimizes CampfireBlockEntity.Companion.serverTick to avoid expensive per-tick
@@ -47,9 +47,9 @@ public abstract class CampfireServerTickMixin {
    * @param ci     The callback info to cancel the original execution if optimized
    */
   @Inject(method = "serverTick", at = @At("HEAD"), cancellable = true)
-  private void cobblemonPatches$optimizeServerTick(World world, BlockPos pos, BlockState state,
+  private void cobblemonPatches$optimizeServerTick(Level world, BlockPos pos, BlockState state,
                                                    CampfireBlockEntity entity, CallbackInfo ci) {
-    if (world.isClient) {
+    if (world.isClientSide) {
       ci.cancel();
       return;
     }
@@ -70,11 +70,11 @@ public abstract class CampfireServerTickMixin {
         return;
       }
 
-      boolean lidClosed = entity.getCachedState().get(CampfireBlock.Companion.getLID());
+      boolean lidClosed = entity.getBlockState().getValue(CampfireBlock.Companion.getLID());
       if (!lidClosed) {
         accessor.cobblemonPatches$setCookingProgress(0);
-        world.setBlockState(pos, state.with(CampfireBlock.Companion.getCOOKING(), false), 3);
-        entity.markDirty();
+        world.setBlock(pos, state.setValue(CampfireBlock.Companion.getCOOKING(), false), 3);
+        entity.setChanged();
       } else {
         accessor.cobblemonPatches$setCookingProgress(progress + 2);
       }
@@ -102,9 +102,9 @@ public abstract class CampfireServerTickMixin {
    * @param ci     The callback info
    */
   @Inject(method = "serverTick", at = @At("TAIL"))
-  private void cobblemonPatches$cacheAfterTick(World world, BlockPos pos, BlockState state,
+  private void cobblemonPatches$cacheAfterTick(Level world, BlockPos pos, BlockState state,
                                                CampfireBlockEntity entity, CallbackInfo ci) {
-    if (world.isClient) return;
+    if (world.isClientSide) return;
 
     CampfireBlockEntityAccessor accessor = (CampfireBlockEntityAccessor) (Object) entity;
     if (Objects.isNull(accessor)) {
@@ -136,9 +136,9 @@ public abstract class CampfireServerTickMixin {
   @Unique
   private static long cobblemonPatches$computeFingerprint(CampfireBlockEntity entity) {
     long hash = 1;
-    int size = entity.size();
+    int size = entity.getContainerSize();
     for (int i = 0; i < size; i++) {
-      ItemStack stack = entity.getStack(i);
+      ItemStack stack = entity.getItem(i);
       if (stack.isEmpty()) {
         hash = hash * 31;
       } else {

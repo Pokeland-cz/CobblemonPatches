@@ -2,8 +2,8 @@ package org.kingpixel.cobblemonpatches.mixins.cobblemon.spawning;
 
 import com.cobblemon.mod.common.api.spawning.spawner.Spawner;
 import com.cobblemon.mod.common.api.spawning.spawner.SpawningZoneInput;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.phys.Vec3;
 
 /**
  * Cache key identifying a spawner and chunk within a dimension for spawning influence detector caching.
@@ -13,7 +13,7 @@ import net.minecraft.util.math.Vec3d;
  * @param chunkX      chunk X coordinate
  * @param chunkZ      chunk Z coordinate
  */
-public record DetectorCacheKey(String spawnerName, Identifier dimension, int chunkX, int chunkZ) {
+public record DetectorCacheKey(String spawnerName, ResourceLocation dimension, int chunkX, int chunkZ) {
 
   /**
    * Constructs a cache key from the given spawner and spawning zone input.
@@ -24,10 +24,10 @@ public record DetectorCacheKey(String spawnerName, Identifier dimension, int chu
    */
   public static DetectorCacheKey of(Spawner spawner, SpawningZoneInput input) {
     String spawnerName = spawner != null ? spawner.getName() : "";
-    Identifier dimension = input.getWorld().getRegistryKey().getValue();
-    Vec3d center = input.getCenter();
-    int chunkX = ((int) Math.floor(center.getX())) >> 4;
-    int chunkZ = ((int) Math.floor(center.getZ())) >> 4;
+    ResourceLocation dimension = input.getWorld().dimension().location();
+    Vec3 center = input.getCenter();
+    int chunkX = ((int) Math.floor(center.x())) >> 4;
+    int chunkZ = ((int) Math.floor(center.z())) >> 4;
     return new DetectorCacheKey(spawnerName, dimension, chunkX, chunkZ);
   }
 }

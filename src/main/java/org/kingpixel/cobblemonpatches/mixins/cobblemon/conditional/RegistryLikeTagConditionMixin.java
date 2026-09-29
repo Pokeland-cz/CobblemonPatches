@@ -2,8 +2,8 @@ package org.kingpixel.cobblemonpatches.mixins.cobblemon.conditional;
 
 import com.cobblemon.mod.common.api.conditional.RegistryLikeTagCondition;
 import java.util.concurrent.ConcurrentHashMap;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.registry.tag.TagKey;
+import net.minecraft.core.Holder;
+import net.minecraft.tags.TagKey;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -22,7 +22,7 @@ public abstract class RegistryLikeTagConditionMixin<T> {
   public abstract TagKey<T> getTag();
 
   @Unique
-  private final ConcurrentHashMap<RegistryEntry<T>, Boolean> cobblemonPatches$cache = new ConcurrentHashMap<>(16);
+  private final ConcurrentHashMap<Holder<T>, Boolean> cobblemonPatches$cache = new ConcurrentHashMap<>(16);
 
   /**
    * Evaluates if the given registry entry is a member of the configured tag, using a memoization cache.
@@ -30,8 +30,8 @@ public abstract class RegistryLikeTagConditionMixin<T> {
    * @param t   the registry entry to test
    * @param cir callback returnable with matching result
    */
-  @Inject(method = "fits(Lnet/minecraft/registry/entry/RegistryEntry;)Z", at = @At("HEAD"), cancellable = true)
-  private void cobblemonPatches$cachedFits(RegistryEntry<T> t, CallbackInfoReturnable<Boolean> cir) {
+  @Inject(method = "fits(Lnet/minecraft/core/Holder;)Z", at = @At("HEAD"), cancellable = true)
+  private void cobblemonPatches$cachedFits(Holder<T> t, CallbackInfoReturnable<Boolean> cir) {
     if (t == null) {
       cir.setReturnValue(false);
       return;
@@ -41,7 +41,7 @@ public abstract class RegistryLikeTagConditionMixin<T> {
       cir.setReturnValue(cached);
       return;
     }
-    boolean result = t.isIn(this.getTag());
+    boolean result = t.is(this.getTag());
     this.cobblemonPatches$cache.put(t, result);
     cir.setReturnValue(result);
   }

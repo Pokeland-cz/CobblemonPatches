@@ -3,9 +3,9 @@ package org.kingpixel.cobblemonpatches.mixins.cobblemon.entity;
 import com.cobblemon.mod.common.entity.pokeball.EmptyPokeBallEntity;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.projectile.thrown.ThrownItemEntity;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.At;
  * during Pokeball capture collisions if the throwing player disconnected in the interim.
  */
 @Mixin(value = EmptyPokeBallEntity.class, remap = false)
-public abstract class EmptyPokeballEntityMixin extends ThrownItemEntity {
+public abstract class EmptyPokeballEntityMixin extends ThrowableItemProjectile {
 
   /**
    * Constructs an instance of EmptyPokeballEntityMixin.
@@ -25,7 +25,7 @@ public abstract class EmptyPokeballEntityMixin extends ThrownItemEntity {
    * @param f          z position
    * @param world      world instance
    */
-  public EmptyPokeballEntityMixin(EntityType<? extends ThrownItemEntity> entityType, double d, double e, double f, World world) {
+  public EmptyPokeballEntityMixin(EntityType<? extends ThrowableItemProjectile> entityType, double d, double e, double f, Level world) {
     super(entityType, d, e, f, world);
   }
 
@@ -41,7 +41,7 @@ public abstract class EmptyPokeballEntityMixin extends ThrownItemEntity {
    * in the next server tick, because null cannot be cast to LivingEntity
    * in the EmptyPokeBallEntity#beginCapture method
    */
-  @WrapOperation(method = "onCollision", at = @At(value = "INVOKE", target = "Lcom/cobblemon/mod/common/entity/pokeball/EmptyPokeBallEntity;beginCapture()V"))
+  @WrapOperation(method = "onHit", at = @At(value = "INVOKE", target = "Lcom/cobblemon/mod/common/entity/pokeball/EmptyPokeBallEntity;beginCapture()V"))
   private void guardBeginCapture(EmptyPokeBallEntity instance, Operation<Void> original) {
     if (this.getOwner() == null) return;
     original.call(instance);

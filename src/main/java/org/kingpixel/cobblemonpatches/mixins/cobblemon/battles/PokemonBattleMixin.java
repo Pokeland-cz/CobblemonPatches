@@ -16,14 +16,14 @@ import com.cobblemon.mod.common.pokemon.activestate.ActivePokemonState;
 import com.cobblemon.mod.common.pokemon.activestate.InactivePokemonState;
 import kotlin.Pair;
 import kotlin.Unit;
-import net.minecraft.entity.Entity;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.Style;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import org.kingpixel.cobblemonpatches.CobblemonPatches;
 import org.kingpixel.cobblemonpatches.config.ModConfig;
 import org.kingpixel.cobblemonpatches.util.TextUtils;
@@ -71,12 +71,12 @@ public abstract class PokemonBattleMixin {
 
   @Unique
   private boolean isPlayerOffline(PlayerBattleActor playerActor) {
-    ServerPlayerEntity player = playerActor.getEntity();
-    if (player == null || player.isDisconnected() || player.isRemoved()) {
+    ServerPlayer player = playerActor.getEntity();
+    if (player == null || player.hasDisconnected() || player.isRemoved()) {
       return true;
     }
     return CobblemonPatches.server != null
-      && CobblemonPatches.server.getPlayerManager().getPlayer(playerActor.getUuid()) == null;
+      && CobblemonPatches.server.getPlayerList().getPlayer(playerActor.getUuid()) == null;
   }
 
   @Unique
@@ -193,7 +193,7 @@ public abstract class PokemonBattleMixin {
       if (this.inactivityTicks > 2400) {
         Cobblemon.LOGGER.warn("Battle {} timed out after 120s of total inactivity/lock. Resolving to prevent freeze.", self.getBattleId());
         ModConfig config = CobblemonPatches.getConfig();
-        Text timeoutMsg = TextUtils.parse(config.getBattleInactivityTimeoutMessage());
+        Component timeoutMsg = TextUtils.parse(config.getBattleInactivityTimeoutMessage());
         self.broadcastChatMessage(timeoutMsg);
         self.stop();
         this.inactivityTicks = 0;
@@ -274,11 +274,11 @@ public abstract class PokemonBattleMixin {
 
     boolean checkedAny = false;
     for (FleeableBattleActor pokemonActor : fleeableActors) {
-      Pair<ServerWorld, Vec3d> wp = pokemonActor.getWorldAndPosition();
+      Pair<ServerLevel, Vec3> wp = pokemonActor.getWorldAndPosition();
       if (wp == null) continue;
 
-      World world = wp.getFirst();
-      Vec3d pos = wp.getSecond();
+      Level world = wp.getFirst();
+      Vec3 pos = wp.getSecond();
       float fleeDist = pokemonActor.getFleeDistance();
 
       if (fleeDist == -1f) return false;
@@ -298,13 +298,13 @@ public abstract class PokemonBattleMixin {
    * @return Euclidean distance to nearest player or Float.MAX_VALUE if none found
    */
   @Unique
-  private float nearestPlayerDistance(Vec3d pos, World world, List<EntityBackedBattleActor<?>> playerEntities) {
+  private float nearestPlayerDistance(Vec3 pos, Level world, List<EntityBackedBattleActor<?>> playerEntities) {
     float nearest = Float.MAX_VALUE;
     for (EntityBackedBattleActor<?> playerActor : playerEntities) {
       Entity entity = playerActor.getEntity();
-      if (entity == null || entity.isRemoved() || entity.getWorld() != world) continue;
+      if (entity == null || entity.isRemoved() || entity.level() != world) continue;
 
-      float dist = (float) pos.distanceTo(entity.getPos());
+      float dist = (float) pos.distanceTo(entity.position());
       if (dist < nearest) nearest = dist;
     }
     return nearest;
@@ -359,13 +359,13 @@ public abstract class PokemonBattleMixin {
    */
   @Unique
   private void sendFleeMessages(Iterable<BattleActor> allActors) {
-    Text text = battleLang("flee")
-      .setStyle(Style.EMPTY.withColor(Formatting.YELLOW));
+    Component text = battleLang("flee")
+      .setStyle(Style.EMPTY.withColor(ChatFormatting.YELLOW));
     for (BattleActor actor : allActors) {
       if (actor instanceof EntityBackedBattleActor<?> entityActor) {
         Entity entity = entityActor.getEntity();
         if (entity != null && !entity.isRemoved()) {
-          entity.sendMessage(text);
+          entity.sendSystemMessage(text);
         }
       }
     }

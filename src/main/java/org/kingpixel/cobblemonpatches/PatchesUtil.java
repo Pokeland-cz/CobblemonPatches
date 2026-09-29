@@ -21,7 +21,7 @@ public class PatchesUtil {
    * @param reason the descriptive context or operation identifier being checked
    */
   public static void catchOp(String reason) {
-    if (CobblemonPatches.server != null && !CobblemonPatches.server.isOnThread()) {
+    if (CobblemonPatches.server != null && !CobblemonPatches.server.isSameThread()) {
       LOGGER.error(
         "Thread {} failed main thread check: {}",
         Thread.currentThread().getName(),

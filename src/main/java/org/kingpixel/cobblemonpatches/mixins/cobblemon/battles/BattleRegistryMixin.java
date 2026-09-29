@@ -8,7 +8,7 @@ import com.cobblemon.mod.common.battles.BattleSide;
 import com.cobblemon.mod.common.battles.BattleStartResult;
 import com.cobblemon.mod.common.battles.actor.PlayerBattleActor;
 import kotlin.Unit;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.level.ServerPlayer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -96,9 +96,9 @@ public abstract class BattleRegistryMixin {
    * @param ci     callback info
    */
   @Inject(method = "onPlayerDisconnect", at = @At("RETURN"))
-  private void onPlayerDisconnect(ServerPlayerEntity player, CallbackInfo ci) {
+  private void onPlayerDisconnect(ServerPlayer player, CallbackInfo ci) {
     if (player == null) return;
-    PLAYER_TO_BATTLE.remove(player.getUuid());
+    PLAYER_TO_BATTLE.remove(player.getUUID());
   }
 
   /**
@@ -109,12 +109,12 @@ public abstract class BattleRegistryMixin {
    */
   @Inject(method = "getBattleByParticipatingPlayer", at = @At("HEAD"), cancellable = true)
   private static void getBattleByPlayer(
-    ServerPlayerEntity player,
+    ServerPlayer player,
     CallbackInfoReturnable<PokemonBattle> cir
   ) {
     if (player == null) return;
 
-    UUID playerId = player.getUuid();
+    UUID playerId = player.getUUID();
     UUID battleId = PLAYER_TO_BATTLE.get(playerId);
     if (battleId == null) return;
 

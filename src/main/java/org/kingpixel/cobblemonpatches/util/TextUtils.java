@@ -1,17 +1,16 @@
 package org.kingpixel.cobblemonpatches.util;
 
-import net.minecraft.text.MutableText;
-import net.minecraft.text.Style;
-import net.minecraft.text.Text;
-import net.minecraft.text.TextColor;
-import net.minecraft.util.Formatting;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextColor;
 
 /**
  * Utility for parsing color codes (& and §), hex colors (&#RRGGBB),
- * and formatting into Minecraft {@link Text} components.
+ * and formatting into Minecraft {@link Component} components.
  */
 public final class TextUtils {
 
@@ -21,17 +20,17 @@ public final class TextUtils {
   }
 
   /**
-   * Converts a formatted string with color codes into a Minecraft {@link Text} component.
+   * Converts a formatted string with color codes into a Minecraft {@link Component} component.
    *
    * @param input the string containing legacy or hex color codes
-   * @return formatted {@link MutableText}
+   * @return formatted {@link MutableComponent}
    */
-  public static MutableText parse(String input) {
+  public static MutableComponent parse(String input) {
     if (input == null || input.isEmpty()) {
-      return Text.empty();
+      return Component.empty();
     }
 
-    MutableText root = Text.empty();
+    MutableComponent root = Component.empty();
     Matcher matcher = FORMAT_PATTERN.matcher(input);
     int lastEnd = 0;
     Style currentStyle = Style.EMPTY;
@@ -39,7 +38,7 @@ public final class TextUtils {
     while (matcher.find()) {
       if (matcher.start() > lastEnd) {
         String textPart = input.substring(lastEnd, matcher.start());
-        root.append(Text.literal(textPart).setStyle(currentStyle));
+        root.append(Component.literal(textPart).setStyle(currentStyle));
       }
 
       String hex = matcher.group(1);
@@ -57,20 +56,20 @@ public final class TextUtils {
 
     if (lastEnd < input.length()) {
       String remaining = input.substring(lastEnd);
-      root.append(Text.literal(remaining).setStyle(currentStyle));
+      root.append(Component.literal(remaining).setStyle(currentStyle));
     }
 
     return root;
   }
 
   private static Style applyLegacyCode(Style style, char code) {
-    Formatting formatting = Formatting.byCode(Character.toLowerCase(code));
-    if (formatting == null || formatting == Formatting.RESET) {
+    ChatFormatting formatting = ChatFormatting.getByCode(Character.toLowerCase(code));
+    if (formatting == null || formatting == ChatFormatting.RESET) {
       return Style.EMPTY;
     }
     if (formatting.isColor()) {
-      return Style.EMPTY.withFormatting(formatting);
+      return Style.EMPTY.applyFormat(formatting);
     }
-    return style.withFormatting(formatting);
+    return style.applyFormat(formatting);
   }
 }

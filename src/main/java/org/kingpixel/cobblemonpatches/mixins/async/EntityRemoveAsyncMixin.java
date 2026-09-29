@@ -2,8 +2,8 @@ package org.kingpixel.cobblemonpatches.mixins.async;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import net.minecraft.entity.Entity;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
 
 /**
@@ -22,12 +22,12 @@ public abstract class EntityRemoveAsyncMixin {
    * @param reason   the reason for removal
    * @param original the wrapped original method operation
    */
-  @WrapMethod(method = "remove(Lnet/minecraft/entity/Entity$RemovalReason;)V")
+  @WrapMethod(method = "remove(Lnet/minecraft/world/entity/Entity$RemovalReason;)V")
   private void guardAsyncRemove(Entity.RemovalReason reason, Operation<Void> original) {
     Entity self = (Entity) (Object) this;
-    if (!self.getWorld().isClient()) {
+    if (!self.level().isClientSide()) {
       MinecraftServer server = self.getServer();
-      if (server != null && !server.isOnThread()) {
+      if (server != null && !server.isSameThread()) {
         server.execute(() -> original.call(reason));
         return;
       }

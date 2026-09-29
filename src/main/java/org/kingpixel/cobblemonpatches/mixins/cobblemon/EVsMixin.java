@@ -6,8 +6,8 @@ import com.cobblemon.mod.common.pokemon.EVs;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import io.netty.buffer.ByteBuf;
-import net.minecraft.network.codec.PacketCodec;
-import net.minecraft.network.codec.PacketCodecs;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
@@ -43,7 +43,7 @@ public abstract class EVsMixin {
   /**
    * Optimized PacketCodec instance wrapping {@link #OPTIMIZED_CODEC} for network serialization.
    */
-  @Unique private static final PacketCodec<ByteBuf, EVs> OPTIMIZED_STREAM_CODEC = PacketCodecs.codec(OPTIMIZED_CODEC);
+  @Unique private static final StreamCodec<ByteBuf, EVs> OPTIMIZED_STREAM_CODEC = ByteBufCodecs.fromCodec(OPTIMIZED_CODEC);
 
   /**
    * Overrides the default EV codec with an optimized version that avoids intermediate collection allocations.
@@ -65,7 +65,7 @@ public abstract class EVsMixin {
    * @reason Overwrite getSTREAM_CODEC to return the optimized stream codec based on the optimized codec.
    */
   @Overwrite
-  public static final @NotNull PacketCodec<ByteBuf, EVs> getSTREAM_CODEC() {
+  public static final @NotNull StreamCodec<ByteBuf, EVs> getSTREAM_CODEC() {
     return OPTIMIZED_STREAM_CODEC;
   }
 }

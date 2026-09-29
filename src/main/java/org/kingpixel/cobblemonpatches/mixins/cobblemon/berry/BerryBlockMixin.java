@@ -3,7 +3,7 @@ package org.kingpixel.cobblemonpatches.mixins.cobblemon.berry;
 import com.cobblemon.mod.common.api.berry.Berries;
 import com.cobblemon.mod.common.api.berry.Berry;
 import com.cobblemon.mod.common.block.BerryBlock;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -20,7 +20,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
  */
 @Mixin(value = BerryBlock.class, remap = false)
 public abstract class BerryBlockMixin {
-  @Final @Shadow private Identifier berryIdentifier;
+  @Final @Shadow private ResourceLocation berryIdentifier;
   @Unique private Berry berry;
 
   /**

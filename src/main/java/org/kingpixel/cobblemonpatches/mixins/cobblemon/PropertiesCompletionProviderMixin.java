@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.level.ServerPlayer;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -62,7 +62,7 @@ public abstract class PropertiesCompletionProviderMixin {
    * @param ci     callback info
    */
   @Inject(method = "sync", at = @At("HEAD"))
-  private void cobblemonPatches$syncMoves(ServerPlayerEntity player, CallbackInfo ci) {
+  private void cobblemonPatches$syncMoves(ServerPlayer player, CallbackInfo ci) {
     if (!cobblemonPatches$movesPopulated) {
       cobblemonPatches$populateMoves();
     }

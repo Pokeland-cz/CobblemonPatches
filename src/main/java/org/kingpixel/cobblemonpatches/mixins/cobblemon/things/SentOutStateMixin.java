@@ -26,7 +26,7 @@ public abstract class SentOutStateMixin {
    */
   @WrapMethod(method = "recall")
   private void ensureMain(Operation<Void> original) {
-    if (CobblemonPatches.server != null && !CobblemonPatches.server.isOnThread()) {
+    if (CobblemonPatches.server != null && !CobblemonPatches.server.isSameThread()) {
       CobblemonPatches.server.execute(original::call);
       return;
     }

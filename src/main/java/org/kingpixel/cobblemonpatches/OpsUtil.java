@@ -1,18 +1,18 @@
 package org.kingpixel.cobblemonpatches;
 
 import com.mojang.serialization.DynamicOps;
-import net.minecraft.nbt.NbtElement;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.NbtOps;
-import net.minecraft.registry.DynamicRegistryManager;
-import net.minecraft.registry.RegistryOps;
+import net.minecraft.nbt.Tag;
+import net.minecraft.resources.RegistryOps;
 
 /**
- * Utility class providing cached {@link DynamicOps} backed by the current server's {@link DynamicRegistryManager}.
+ * Utility class providing cached {@link DynamicOps} backed by the current server's {@link RegistryAccess}.
  * Avoids rebuilding registry ops repeatedly during NBT serialization operations.
  */
 public class OpsUtil {
 
-  private static DynamicOps<NbtElement> ops;
+  private static DynamicOps<Tag> ops;
 
   private OpsUtil() {
   }
@@ -22,12 +22,12 @@ public class OpsUtil {
    *
    * @return the cached DynamicOps instance, or NbtOps.INSTANCE if unavailable
    */
-  public static DynamicOps<NbtElement> getOps() {
+  public static DynamicOps<Tag> getOps() {
     if (ops == null && CobblemonPatches.server != null) {
       try {
-        DynamicRegistryManager registryManager = CobblemonPatches.server.getRegistryManager();
+        RegistryAccess registryManager = CobblemonPatches.server.registryAccess();
         if (registryManager != null) {
-          ops = RegistryOps.of(NbtOps.INSTANCE, registryManager);
+          ops = RegistryOps.create(NbtOps.INSTANCE, registryManager);
         }
       } catch (Exception e) {
         CobblemonPatches.LOGGER.error("Failed to create RegistryOps", e);

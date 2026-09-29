@@ -1,9 +1,9 @@
 package org.kingpixel.cobblemonpatches.mixins.cobblemon.blockentity;
 
 import com.cobblemon.mod.common.block.entity.PCBlockEntity;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -28,14 +28,14 @@ public abstract class PCBlockEntityTickerMixin {
    * @param ci          callback info
    */
   @Inject(method = "TICKER$lambda$0", at = @At("HEAD"), cancellable = true)
-  private static void cobblemonPatches$throttlePCTicker(World world, BlockPos pos, BlockState state,
+  private static void cobblemonPatches$throttlePCTicker(Level world, BlockPos pos, BlockState state,
                                                         PCBlockEntity blockEntity, CallbackInfo ci) {
-    if (world.isClient()) {
+    if (world.isClientSide()) {
       ci.cancel();
       return;
     }
 
-    if (Math.floorMod(world.getTime() + pos.hashCode(), 20L) != 0L) {
+    if (Math.floorMod(world.getGameTime() + pos.hashCode(), 20L) != 0L) {
       ci.cancel();
     }
   }

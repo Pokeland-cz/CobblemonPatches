@@ -4,8 +4,8 @@ import com.cobblemon.mod.common.api.habitats.spawningstyle.ActivatedHabitatSpawn
 import com.cobblemon.mod.common.block.habitat.HabitatBlockEntity;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.core.BlockPos;
+import net.minecraft.server.level.ServerLevel;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -34,11 +34,11 @@ public abstract class HabitatBlockEntityTickerMixin {
   )
   private static void cobblemonPatches$throttleActivatedHabitatSpawning(
       ActivatedHabitatSpawning instance,
-      ServerWorld world,
+      ServerLevel world,
       BlockPos pos,
       Operation<Void> original
   ) {
-    if (Math.floorMod(world.getTime() + pos.hashCode(), 20L) != 0L) {
+    if (Math.floorMod(world.getGameTime() + pos.hashCode(), 20L) != 0L) {
       return;
     }
     original.call(instance, world, pos);

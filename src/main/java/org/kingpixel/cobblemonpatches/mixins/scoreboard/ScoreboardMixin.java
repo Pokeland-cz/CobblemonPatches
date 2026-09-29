@@ -1,7 +1,7 @@
 package org.kingpixel.cobblemonpatches.mixins.scoreboard;
 
-import net.minecraft.scoreboard.Scoreboard;
-import net.minecraft.scoreboard.Team;
+import net.minecraft.world.scores.PlayerTeam;
+import net.minecraft.world.scores.Scoreboard;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -21,7 +21,7 @@ public abstract class ScoreboardMixin {
 
   @Shadow
   @Nullable
-  public abstract Team getScoreHolderTeam(String scoreHolderName);
+  public abstract PlayerTeam getPlayersTeam(String scoreHolderName);
 
   /**
    * Intercepts removal of a score holder from a team, cancelling the operation if the holder is not assigned to that team.
@@ -31,16 +31,16 @@ public abstract class ScoreboardMixin {
    * @param ci              The injection callback information.
    */
   @Inject(
-      method = "removeScoreHolderFromTeam",
+      method = "removePlayerFromTeam(Ljava/lang/String;Lnet/minecraft/world/scores/PlayerTeam;)V",
       at = @At("HEAD"),
       cancellable = true
   )
   private void cobblemonPatchesGuardRemoveScoreHolderFromTeam(
       String scoreHolderName,
-      Team team,
+      PlayerTeam team,
       CallbackInfo ci
   ) {
-    if (this.getScoreHolderTeam(scoreHolderName) != team) {
+    if (this.getPlayersTeam(scoreHolderName) != team) {
       ci.cancel();
     }
   }

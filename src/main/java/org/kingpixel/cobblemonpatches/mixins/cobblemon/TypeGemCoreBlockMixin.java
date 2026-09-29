@@ -4,16 +4,16 @@ import com.cobblemon.mod.common.api.tags.CobblemonBlockTags;
 import com.cobblemon.mod.common.block.TypeGemClusterBlock;
 import com.cobblemon.mod.common.block.TypeGemCoreBlock;
 import kotlin.Pair;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.state.property.BooleanProperty;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.random.Random;
-import net.minecraft.world.BlockView;
-import net.minecraft.world.StructureWorldAccess;
-import net.minecraft.world.WorldAccess;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.level.WorldGenLevel;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -42,7 +42,7 @@ public abstract class TypeGemCoreBlockMixin {
    * @param ci         callback info
    */
   @Inject(method = "forceGrow", at = @At("HEAD"), cancellable = true)
-  private void cobblemonPatchesForceGrow(StructureWorldAccess level, BlockPos pos, Random random, float percentage,
+  private void cobblemonPatchesForceGrow(WorldGenLevel level, BlockPos pos, RandomSource random, float percentage,
                                          CallbackInfo ci) {
     float desiredLength = TypeGemCoreBlock.MAX_CONNECTED_GEMS * percentage;
     while (true) {
@@ -67,7 +67,7 @@ public abstract class TypeGemCoreBlockMixin {
    * @param cir    callback returnable with growth status and cluster size
    */
   @Inject(method = "grow", at = @At("HEAD"), cancellable = true)
-  private void cobblemonPatchesGrow(StructureWorldAccess level, BlockPos pos, Random random, boolean forced,
+  private void cobblemonPatchesGrow(WorldGenLevel level, BlockPos pos, RandomSource random, boolean forced,
                                     CallbackInfoReturnable<Pair<Boolean, Integer>> cir) {
     cir.setReturnValue(performOptimizedGrow(level, pos, random, forced));
     cir.cancel();
@@ -83,8 +83,8 @@ public abstract class TypeGemCoreBlockMixin {
    * @return pair containing whether growth occurred and total gem count
    */
   @Unique
-  private Pair<Boolean, Integer> performOptimizedGrow(StructureWorldAccess level, BlockPos pos,
-                                                      Random random, boolean forced) {
+  private Pair<Boolean, Integer> performOptimizedGrow(WorldGenLevel level, BlockPos pos,
+                                                      RandomSource random, boolean forced) {
     int maxCapacity = Math.max(16, TypeGemCoreBlock.MAX_CONNECTED_GEMS);
     BlockPos[] gemPositions = new BlockPos[maxCapacity];
     BlockState[] gemStates = new BlockState[maxCapacity];
@@ -136,14 +136,14 @@ public abstract class TypeGemCoreBlockMixin {
    * @return updated gem count if growth succeeded, 0 otherwise
    */
   @Unique
-  private static int tryGrowFromGem(StructureWorldAccess level, BlockPos gemPos, TypeGemClusterBlock clusterBlock,
-                                    Random random, boolean forced, int currentGemCount) {
+  private static int tryGrowFromGem(WorldGenLevel level, BlockPos gemPos, TypeGemClusterBlock clusterBlock,
+                                    RandomSource random, boolean forced, int currentGemCount) {
     int[] dirIndices = {0, 1, 2, 3, 4, 5};
     shuffleIndices(dirIndices, 6, random);
 
     for (int d = 0; d < 6; d++) {
       Direction dir = DIRECTIONS[dirIndices[d]];
-      BlockPos targetPos = gemPos.offset(dir);
+      BlockPos targetPos = gemPos.relative(dir);
 
       if (!level.getBlockState(targetPos).isAir()) {
         continue;
@@ -172,14 +172,14 @@ public abstract class TypeGemCoreBlockMixin {
    * @param dir          facing direction
    */
   @Unique
-  private static void placeClusterBlock(StructureWorldAccess level, BlockPos targetPos,
+  private static void placeClusterBlock(WorldGenLevel level, BlockPos targetPos,
                                         TypeGemClusterBlock clusterBlock, Direction dir) {
-    BlockState placeState = clusterBlock.getDefaultState()
-      .with(TypeGemClusterBlock.Companion.getFACING(), dir)
-      .with(TypeGemClusterBlock.Companion.getSTAGE(), 0)
-      .with(TypeGemClusterBlock.Companion.getSHOULD_GROW(), true)
-      .with(TypeGemClusterBlock.Companion.getSTUNTED(), false);
-    level.setBlockState(targetPos, placeState, getUpdateFlags(level));
+    BlockState placeState = clusterBlock.defaultBlockState()
+      .setValue(TypeGemClusterBlock.Companion.getFACING(), dir)
+      .setValue(TypeGemClusterBlock.Companion.getSTAGE(), 0)
+      .setValue(TypeGemClusterBlock.Companion.getSHOULD_GROW(), true)
+      .setValue(TypeGemClusterBlock.Companion.getSTUNTED(), false);
+    level.setBlock(targetPos, placeState, getUpdateFlags(level));
   }
 
   /**
@@ -189,8 +189,8 @@ public abstract class TypeGemCoreBlockMixin {
    * @return block update flag bitmask
    */
   @Unique
-  private static int getUpdateFlags(WorldAccess level) {
-    return level instanceof ServerWorld ? Block.NOTIFY_ALL : Block.NOTIFY_LISTENERS;
+  private static int getUpdateFlags(LevelAccessor level) {
+    return level instanceof ServerLevel ? Block.UPDATE_ALL : Block.UPDATE_CLIENTS;
   }
 
   /**
@@ -203,7 +203,7 @@ public abstract class TypeGemCoreBlockMixin {
    * @return total number of connected gem blocks discovered
    */
   @Unique
-  private static int collectConnectedGems(BlockView level, BlockPos origin,
+  private static int collectConnectedGems(BlockGetter level, BlockPos origin,
                                           BlockPos[] outPositions, BlockState[] outStates) {
     int count = 0;
     outPositions[count] = origin;
@@ -214,7 +214,7 @@ public abstract class TypeGemCoreBlockMixin {
     while (head < count) {
       BlockPos current = outPositions[head++];
       for (Direction dir : DIRECTIONS) {
-        BlockPos neighbor = current.offset(dir);
+        BlockPos neighbor = current.relative(dir);
         if (isAlreadyVisited(outPositions, count, neighbor)) {
           continue;
         }
@@ -257,11 +257,11 @@ public abstract class TypeGemCoreBlockMixin {
    * @param stunted      target stunted boolean state
    */
   @Unique
-  private static void updateStuntState(WorldAccess level, BlockPos[] gemPositions, int gemCount, boolean stunted) {
+  private static void updateStuntState(LevelAccessor level, BlockPos[] gemPositions, int gemCount, boolean stunted) {
     for (int i = 0; i < gemCount; i++) {
       BlockPos gemPos = gemPositions[i];
       for (Direction dir : DIRECTIONS) {
-        applyStuntToNeighbor(level, gemPos.offset(dir), stunted);
+        applyStuntToNeighbor(level, gemPos.relative(dir), stunted);
       }
     }
   }
@@ -274,20 +274,20 @@ public abstract class TypeGemCoreBlockMixin {
    * @param stunted     stunted state
    */
   @Unique
-  private static void applyStuntToNeighbor(WorldAccess level, BlockPos neighborPos, boolean stunted) {
+  private static void applyStuntToNeighbor(LevelAccessor level, BlockPos neighborPos, boolean stunted) {
     BlockState state = level.getBlockState(neighborPos);
     if (!(state.getBlock() instanceof TypeGemClusterBlock)) {
       return;
     }
 
     BooleanProperty stuntedProp = TypeGemClusterBlock.Companion.getSTUNTED();
-    if (state.contains(stuntedProp) && state.get(stuntedProp) != stunted) {
-      BlockState updated = state.with(stuntedProp, stunted);
+    if (state.hasProperty(stuntedProp) && state.getValue(stuntedProp) != stunted) {
+      BlockState updated = state.setValue(stuntedProp, stunted);
       BooleanProperty growProp = TypeGemClusterBlock.Companion.getSHOULD_GROW();
-      if (updated.contains(growProp)) {
-        updated = updated.with(growProp, !stunted);
+      if (updated.hasProperty(growProp)) {
+        updated = updated.setValue(growProp, !stunted);
       }
-      level.setBlockState(neighborPos, updated, getUpdateFlags(level));
+      level.setBlock(neighborPos, updated, getUpdateFlags(level));
     }
   }
 
@@ -300,11 +300,11 @@ public abstract class TypeGemCoreBlockMixin {
    * @return true if any neighboring position is air
    */
   @Unique
-  private static boolean hasBreathingRoom(StructureWorldAccess level, BlockPos[] gemPositions, int gemCount) {
+  private static boolean hasBreathingRoom(WorldGenLevel level, BlockPos[] gemPositions, int gemCount) {
     for (int i = 0; i < gemCount; i++) {
       BlockPos gemPos = gemPositions[i];
       for (Direction dir : DIRECTIONS) {
-        if (level.getBlockState(gemPos.offset(dir)).isAir()) {
+        if (level.getBlockState(gemPos.relative(dir)).isAir()) {
           return true;
         }
       }
@@ -320,7 +320,7 @@ public abstract class TypeGemCoreBlockMixin {
    * @param random     random generator
    */
   @Unique
-  private static void advanceCluster(StructureWorldAccess level, BlockPos clusterPos, Random random) {
+  private static void advanceCluster(WorldGenLevel level, BlockPos clusterPos, RandomSource random) {
     for (int i = 0; i < 5; i++) {
       BlockState clusterState = level.getBlockState(clusterPos);
       if (clusterState.getBlock() instanceof TypeGemClusterBlock clusterBlock) {
@@ -339,7 +339,7 @@ public abstract class TypeGemCoreBlockMixin {
    * @param random random generator
    */
   @Unique
-  private static void shuffleIndices(int[] array, int length, Random random) {
+  private static void shuffleIndices(int[] array, int length, RandomSource random) {
     for (int i = length - 1; i > 0; i--) {
       int j = random.nextInt(i + 1);
       int tmp = array[i];
@@ -356,6 +356,6 @@ public abstract class TypeGemCoreBlockMixin {
    */
   @Unique
   private static boolean isGemBlock(BlockState state) {
-    return state.isIn(CobblemonBlockTags.TYPE_GEM_BLOCKS);
+    return state.is(CobblemonBlockTags.TYPE_GEM_BLOCKS);
   }
 }

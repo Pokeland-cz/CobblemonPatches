@@ -3,7 +3,7 @@ package org.kingpixel.cobblemonpatches.mixins.cobblemon.network;
 import com.cobblemon.mod.common.net.messages.server.BattleChallengePacket;
 import com.cobblemon.mod.common.net.serverhandling.ChallengeHandler;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.level.ServerPlayer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -25,12 +25,12 @@ public class ChallengeHandlerMixin {
    * @param ci     callback info
    */
   @Inject(
-    method = "handle(Lcom/cobblemon/mod/common/net/messages/server/BattleChallengePacket;Lnet/minecraft/server/MinecraftServer;Lnet/minecraft/server/network/ServerPlayerEntity;)V",
+    method = "handle(Lcom/cobblemon/mod/common/net/messages/server/BattleChallengePacket;Lnet/minecraft/server/MinecraftServer;Lnet/minecraft/server/level/ServerPlayer;)V",
     at = @At("HEAD"),
     cancellable = true
   )
-  private void ensureMain(BattleChallengePacket packet, MinecraftServer server, ServerPlayerEntity player, CallbackInfo ci) {
-    if (!server.isOnThread()) {
+  private void ensureMain(BattleChallengePacket packet, MinecraftServer server, ServerPlayer player, CallbackInfo ci) {
+    if (!server.isSameThread()) {
       ci.cancel();
       server.execute(() -> ChallengeHandler.INSTANCE.handle(packet, server, player));
     }

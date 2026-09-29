@@ -1,6 +1,6 @@
 package org.kingpixel.cobblemonpatches.mixins.async;
 
-import net.minecraft.server.world.ServerEntityManager;
+import net.minecraft.world.level.entity.PersistentEntitySectionManager;
 import org.kingpixel.cobblemonpatches.PatchesUtil;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -8,9 +8,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Mixin into {@link ServerEntityManager} to detect asynchronous chunk unloading.
+ * Mixin into {@link PersistentEntitySectionManager} to detect asynchronous chunk unloading.
  */
-@Mixin(ServerEntityManager.class)
+@Mixin(PersistentEntitySectionManager.class)
 public abstract class ServerEntityManagerMixin {
 
   /**
@@ -18,7 +18,7 @@ public abstract class ServerEntityManagerMixin {
    *
    * @param ci callback information
    */
-  @Inject(method = "unloadChunks", at = @At("HEAD"))
+  @Inject(method = "processUnloads", at = @At("HEAD"))
   private void beforeUnloadChunks(CallbackInfo ci) {
     PatchesUtil.catchOp("unloadChunks is executing");
   }

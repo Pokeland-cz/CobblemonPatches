@@ -8,8 +8,8 @@ import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
 import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.DynamicOps;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtElement;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import org.kingpixel.cobblemonpatches.CobblemonPatches;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -44,7 +44,7 @@ public abstract class CobblemonDataFixerCodecMixin<R> implements Codec<R> {
   public <T> DataResult<T> encode(R input, DynamicOps<T> ops, T prefix) {
     DataResult<T> result = this.baseCodec.encode(input, ops, prefix);
     return result.flatMap(encoded -> {
-      if (encoded instanceof NbtCompound nbtCompound) {
+      if (encoded instanceof CompoundTag nbtCompound) {
         nbtCompound.putInt(CobblemonSchemas.VERSION_KEY, CobblemonSchemas.DATA_VERSION);
         return DataResult.success(encoded);
       } else if (encoded instanceof JsonObject jsonObject) {
@@ -73,8 +73,8 @@ public abstract class CobblemonDataFixerCodecMixin<R> implements Codec<R> {
   @Override
   public <T> DataResult<Pair<R, T>> decode(DynamicOps<T> ops, T input) {
     int inputVersion = 0;
-    if (input instanceof NbtCompound nbtCompound) {
-      if (nbtCompound.contains(CobblemonSchemas.VERSION_KEY, NbtElement.NUMBER_TYPE)) {
+    if (input instanceof CompoundTag nbtCompound) {
+      if (nbtCompound.contains(CobblemonSchemas.VERSION_KEY, Tag.TAG_ANY_NUMERIC)) {
         inputVersion = nbtCompound.getInt(CobblemonSchemas.VERSION_KEY);
       }
     } else if (input instanceof JsonObject jsonObject) {

@@ -8,10 +8,6 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.poi.PointOfInterestStorage;
-import net.minecraft.world.poi.PointOfInterestType;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -23,6 +19,10 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.world.entity.ai.village.poi.PoiManager;
+import net.minecraft.world.entity.ai.village.poi.PoiType;
 
 /**
  * Optimizes HabitatBlockDetector by clamping the excessive 128-block POI scan radius
@@ -64,17 +64,17 @@ public abstract class HabitatBlockDetectorMixin {
       method = "detectFromInput",
       at = @At(
           value = "INVOKE",
-          target = "Lnet/minecraft/world/poi/PointOfInterestStorage;getPositions(Ljava/util/function/Predicate;Ljava/util/function/Predicate;Lnet/minecraft/util/math/BlockPos;ILnet/minecraft/world/poi/PointOfInterestStorage$OccupationStatus;)Ljava/util/stream/Stream;",
+          target = "Lnet/minecraft/world/entity/ai/village/poi/PoiManager;findAll(Ljava/util/function/Predicate;Ljava/util/function/Predicate;Lnet/minecraft/core/BlockPos;ILnet/minecraft/world/entity/ai/village/poi/PoiManager$Occupancy;)Ljava/util/stream/Stream;",
           remap = false
       )
   )
   private Stream<BlockPos> cobblemonPatches$clampHabitatSearchRadius(
-      PointOfInterestStorage instance,
-      Predicate<RegistryEntry<PointOfInterestType>> typePredicate,
+      PoiManager instance,
+      Predicate<Holder<PoiType>> typePredicate,
       Predicate<BlockPos> posPredicate,
       BlockPos pos,
       int radius,
-      PointOfInterestStorage.OccupationStatus occupationStatus,
+      PoiManager.Occupancy occupationStatus,
       Operation<Stream<BlockPos>> original
   ) {
     int clampedRadius = Math.min(radius, MAX_SEARCH_RADIUS);

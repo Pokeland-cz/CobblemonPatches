@@ -14,12 +14,12 @@ import com.mojang.authlib.minecraft.MinecraftProfileTexture;
 import com.mojang.authlib.minecraft.MinecraftProfileTextures;
 import com.mojang.authlib.yggdrasil.ProfileResult;
 import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.passive.PassiveEntity;
+import net.minecraft.Util;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.util.Util;
-import net.minecraft.world.World;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.AgeableMob;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.level.Level;
 import org.kingpixel.cobblemonpatches.CobblemonPatches;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -45,7 +45,7 @@ import java.util.concurrent.TimeUnit;
  * Caffeine profile texture caching, and per-tick player visibility memoization.
  */
 @Mixin(value = NPCEntity.class, remap = false)
-public abstract class NPCEntityMixin extends PassiveEntity {
+public abstract class NPCEntityMixin extends AgeableMob {
 
   @Shadow(remap = false)
   public abstract Set<String> getAppliedAspects();
@@ -92,7 +92,7 @@ public abstract class NPCEntityMixin extends PassiveEntity {
    * @param entityType entity type
    * @param world      world level
    */
-  protected NPCEntityMixin(EntityType<? extends PassiveEntity> entityType, World world) {
+  protected NPCEntityMixin(EntityType<? extends AgeableMob> entityType, Level world) {
     super(entityType, world);
   }
 
@@ -177,7 +177,7 @@ public abstract class NPCEntityMixin extends PassiveEntity {
           }
         });
       }
-    }, Util.getIoWorkerExecutor());
+    }, Util.ioPool());
   }
 
   /**
@@ -198,14 +198,14 @@ public abstract class NPCEntityMixin extends PassiveEntity {
 
     CompletableFuture.runAsync(() -> {
       try {
-        Optional<GameProfile> cachedProfile = server.getUserCache() != null
-          ? server.getUserCache().findByName(username)
+        Optional<GameProfile> cachedProfile = server.getProfileCache() != null
+          ? server.getProfileCache().get(username)
           : Optional.empty();
 
         if (cachedProfile.isPresent()) {
           cobblemonpatches$resolveProfileTextures(server, cachedProfile.get(), username, cacheKey, future);
         } else {
-          server.getGameProfileRepo().findProfilesByNames(new String[]{username}, new ProfileLookupCallback() {
+          server.getProfileRepository().findProfilesByNames(new String[]{username}, new ProfileLookupCallback() {
             @Override
             public void onProfileLookupSucceeded(GameProfile profile) {
               cobblemonpatches$resolveProfileTextures(server, profile, username, cacheKey, future);
@@ -222,7 +222,7 @@ public abstract class NPCEntityMixin extends PassiveEntity {
         Cobblemon.LOGGER.error("Exception during profile lookup for game profile name: {}", username, e);
         cobblemonpatches$failPendingLookup(cacheKey, future);
       }
-    }, Util.getIoWorkerExecutor());
+    }, Util.ioPool());
 
     return future;
   }
@@ -371,7 +371,7 @@ public abstract class NPCEntityMixin extends PassiveEntity {
     this.getAppliedAspects().remove("model-default");
     this.getAppliedAspects().remove("model-slim");
     this.getAppliedAspects().add("model-" + model.name().toLowerCase(Locale.ROOT));
-    this.getDataTracker().set(NPCEntity.Companion.getNPC_PLAYER_TEXTURE(), new NPCPlayerTexture(bytes, model));
+    this.getEntityData().set(NPCEntity.Companion.getNPC_PLAYER_TEXTURE(), new NPCPlayerTexture(bytes, model));
     this.updateAspects();
   }
 
@@ -382,18 +382,18 @@ public abstract class NPCEntityMixin extends PassiveEntity {
    * @param cir    callback returnable
    */
   @Inject(method = "shouldHideFrom", at = @At("HEAD"), cancellable = true, remap = false)
-  private void cobblemonPatches$cachedShouldHideFrom(ServerPlayerEntity player, CallbackInfoReturnable<Boolean> cir) {
+  private void cobblemonPatches$cachedShouldHideFrom(ServerPlayer player, CallbackInfoReturnable<Boolean> cir) {
     if (player == null) {
       cir.setReturnValue(false);
       return;
     }
 
-    long currentTick = this.getWorld().getTime();
+    long currentTick = this.level().getGameTime();
     if (this.cobblemonpatches$lastHideCheckTick != currentTick) {
       this.cobblemonpatches$lastHideCheckTick = currentTick;
       this.cobblemonpatches$playerHideCache.clear();
-    } else if (this.cobblemonpatches$playerHideCache.containsKey(player.getUuid())) {
-      cir.setReturnValue(this.cobblemonpatches$playerHideCache.getBoolean(player.getUuid()));
+    } else if (this.cobblemonpatches$playerHideCache.containsKey(player.getUUID())) {
+      cir.setReturnValue(this.cobblemonpatches$playerHideCache.getBoolean(player.getUUID()));
     }
   }
 
@@ -404,9 +404,9 @@ public abstract class NPCEntityMixin extends PassiveEntity {
    * @param cir    callback returnable
    */
   @Inject(method = "shouldHideFrom", at = @At("RETURN"), remap = false)
-  private void cobblemonPatches$cacheShouldHideFrom(ServerPlayerEntity player, CallbackInfoReturnable<Boolean> cir) {
+  private void cobblemonPatches$cacheShouldHideFrom(ServerPlayer player, CallbackInfoReturnable<Boolean> cir) {
     if (player != null) {
-      this.cobblemonpatches$playerHideCache.put(player.getUuid(), cir.getReturnValueZ());
+      this.cobblemonpatches$playerHideCache.put(player.getUUID(), cir.getReturnValueZ());
     }
   }
 }

@@ -5,7 +5,7 @@ import com.cobblemon.mod.common.api.storage.PokemonStore;
 import com.cobblemon.mod.common.api.storage.factory.FileBackedPokemonStoreFactory;
 import com.cobblemon.mod.common.platform.events.ServerTickEvent;
 import kotlin.Unit;
-import net.minecraft.registry.DynamicRegistryManager;
+import net.minecraft.core.RegistryAccess;
 import org.kingpixel.cobblemonpatches.CobblemonPatches;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -26,7 +26,7 @@ public abstract class FileBackedPokemonStoreFactoryMixin {
   @Shadow private Set<PokemonStore<?>> dirtyStores;
   @Shadow private int passedTicks;
 
-  @Shadow public abstract void save(PokemonStore<?> store, DynamicRegistryManager registryAccess);
+  @Shadow public abstract void save(PokemonStore<?> store, RegistryAccess registryAccess);
 
   /**
    * Spreads dirty Pokemon store saving incrementally across game ticks rather than in a single synchronous burst.
@@ -55,7 +55,7 @@ public abstract class FileBackedPokemonStoreFactoryMixin {
 
     if (self.passedTicks >= targetTicks) {
       if (!self.dirtyStores.isEmpty()) {
-        DynamicRegistryManager registryManager = it.getServer().getRegistryManager();
+        RegistryAccess registryManager = it.getServer().registryAccess();
         int maxSaves = Math.max(1, CobblemonPatches.getConfig().getAutosaveStoresPerTick());
         for (int i = 0; i < maxSaves && !self.dirtyStores.isEmpty(); i++) {
           PokemonStore<?> store = self.dirtyStores.iterator().next();

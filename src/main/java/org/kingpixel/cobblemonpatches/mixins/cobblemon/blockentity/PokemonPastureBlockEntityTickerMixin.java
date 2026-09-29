@@ -4,9 +4,9 @@ import com.cobblemon.mod.common.block.PastureBlock;
 import com.cobblemon.mod.common.block.entity.PokemonPastureBlockEntity;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.block.BlockState;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -34,25 +34,25 @@ public abstract class PokemonPastureBlockEntityTickerMixin {
       method = "TICKER$lambda$0",
       at = @At(
           value = "INVOKE",
-          target = "Lcom/cobblemon/mod/common/block/entity/PokemonPastureBlockEntity;getInRangeViewerCount$default(Lcom/cobblemon/mod/common/block/entity/PokemonPastureBlockEntity;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;DILjava/lang/Object;)I"
+          target = "Lcom/cobblemon/mod/common/block/entity/PokemonPastureBlockEntity;getInRangeViewerCount$default(Lcom/cobblemon/mod/common/block/entity/PokemonPastureBlockEntity;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;DILjava/lang/Object;)I"
       )
   )
   private static int cobblemonPatches$throttlePastureViewerCheck(
       PokemonPastureBlockEntity instance,
-      World world,
+      Level world,
       BlockPos pos,
       double distance,
       int flags,
       Object obj,
       Operation<Integer> original
   ) {
-    if (world.isClient()) {
+    if (world.isClientSide()) {
       return 0;
     }
 
-    if (Math.floorMod(world.getTime() + pos.hashCode(), 20L) != 0L) {
+    if (Math.floorMod(world.getGameTime() + pos.hashCode(), 20L) != 0L) {
       BlockState state = world.getBlockState(pos);
-      if (state.contains(PastureBlock.Companion.getON()) && Boolean.TRUE.equals(state.get(PastureBlock.Companion.getON()))) {
+      if (state.hasProperty(PastureBlock.Companion.getON()) && Boolean.TRUE.equals(state.getValue(PastureBlock.Companion.getON()))) {
         return 1;
       }
       return 0;

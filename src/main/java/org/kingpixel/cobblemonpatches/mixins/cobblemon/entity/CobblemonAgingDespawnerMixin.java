@@ -5,8 +5,8 @@ import com.cobblemon.mod.common.entity.pokemon.CobblemonAgingDespawner;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import java.util.List;
 import kotlin.jvm.functions.Function1;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -48,7 +48,7 @@ public abstract class CobblemonAgingDespawnerMixin<T extends Entity> {
       return;
     }
 
-    if (entity.age % 20 != 0) {
+    if (entity.tickCount % 20 != 0) {
       cir.setReturnValue(false);
       return;
     }
@@ -56,12 +56,12 @@ public abstract class CobblemonAgingDespawnerMixin<T extends Entity> {
     int age = this.getAgeTicks.invoke(entity);
     if (age < Cobblemon.INSTANCE.getConfig().getDespawnerMinAgeTicks()
         || (entity instanceof PokemonEntity pokemonEntity && pokemonEntity.isBusy())
-        || entity.hasPassengers()) {
+        || entity.isVehicle()) {
       cir.setReturnValue(false);
       return;
     }
 
-    List<? extends PlayerEntity> players = entity.getWorld().getPlayers();
+    List<? extends Player> players = entity.level().players();
     if (players == null || players.isEmpty()) {
       cir.setReturnValue(true);
       return;
@@ -73,9 +73,9 @@ public abstract class CobblemonAgingDespawnerMixin<T extends Entity> {
     float farDistSq = farDist * farDist;
 
     double closestDistSq = Double.MAX_VALUE;
-    for (PlayerEntity player : players) {
+    for (Player player : players) {
       if (player == null) continue;
-      double distSq = entity.squaredDistanceTo(player);
+      double distSq = entity.distanceToSqr(player);
       if (distSq < closestDistSq) {
         closestDistSq = distSq;
         if (closestDistSq < nearDistSq) {

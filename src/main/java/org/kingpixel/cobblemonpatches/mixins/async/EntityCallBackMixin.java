@@ -2,8 +2,8 @@ package org.kingpixel.cobblemonpatches.mixins.async;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import net.minecraft.entity.Entity;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.entity.Entity;
 import org.kingpixel.cobblemonpatches.PatchesUtil;
 import org.spongepowered.asm.mixin.Mixin;
 
@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.Mixin;
  * preventing race conditions during asynchronous chunk/entity operations.
  */
 @Mixin(
-  targets = {"net.minecraft.server.world.ServerWorld$ServerEntityHandler"}
+  targets = {"net.minecraft.server.level.ServerLevel$EntityCallbacks"}
 )
 public abstract class EntityCallBackMixin {
 
@@ -24,7 +24,7 @@ public abstract class EntityCallBackMixin {
    * @param original the wrapped original method operation
    */
   @WrapMethod(
-    method = "startTracking(Lnet/minecraft/entity/Entity;)V"
+    method = "onTrackingStart(Lnet/minecraft/world/entity/Entity;)V"
   )
   private void guardOnTrackingStart(Entity entity, Operation<?> original) {
     PatchesUtil.catchOp("entity register");
@@ -38,7 +38,7 @@ public abstract class EntityCallBackMixin {
     final Operation<?> finalOriginal = original;
 
     MinecraftServer server = finalEntity.getServer();
-    if (server != null && !server.isOnThread()) {
+    if (server != null && !server.isSameThread()) {
       server.execute(() -> finalOriginal.call(finalEntity));
     } else {
       original.call(entity);
@@ -52,7 +52,7 @@ public abstract class EntityCallBackMixin {
    * @param original the wrapped original method operation
    */
   @WrapMethod(
-    method = "stopTracking(Lnet/minecraft/entity/Entity;)V"
+    method = "onTrackingEnd(Lnet/minecraft/world/entity/Entity;)V"
   )
   private void guardOnTrackingEnd(Entity entity, Operation<?> original) {
     PatchesUtil.catchOp("entity unregister");
@@ -66,7 +66,7 @@ public abstract class EntityCallBackMixin {
     final Operation<?> finalOriginal = original;
 
     MinecraftServer server = finalEntity.getServer();
-    if (server != null && !server.isOnThread()) {
+    if (server != null && !server.isSameThread()) {
       server.execute(() -> finalOriginal.call(finalEntity));
     } else {
       original.call(entity);
