@@ -35,7 +35,7 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "org.kingpixel.cobblemonpatches.CobblemonPatches"
+      "org.kingpixel.cobblemonpatches.fabric.CobblemonPatchesFabric"
     ]
   },
   "mixins": [

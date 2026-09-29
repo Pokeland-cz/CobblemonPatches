@@ -1,7 +1,6 @@
 package org.kingpixel.cobblemonpatches;
 
-import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import dev.architectury.event.events.common.LifecycleEvent;
 import net.minecraft.server.MinecraftServer;
 import org.kingpixel.cobblemonpatches.config.ConfigManager;
 import org.kingpixel.cobblemonpatches.config.ModConfig;
@@ -9,23 +8,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Entry point for the Cobblemon Patches Fabric mod.
+ * Common entry point for Cobblemon Patches.
  * Initializes server lifecycle listeners and logs active runtime optimizations.
  */
-public class CobblemonPatches implements ModInitializer {
+public class CobblemonPatches {
+  public static final String MOD_ID = "cobblemonpatches";
   public static final Logger LOGGER = LoggerFactory.getLogger("Cobblemon Patches");
   public static MinecraftServer server = null;
+
+  private CobblemonPatches() {
+  }
 
   public static ModConfig getConfig() {
     return ConfigManager.getConfig();
   }
 
   /**
-   * Initializes the mod during the Fabric loading phase.
-   * Registers server lifecycle events to capture the server instance.
+   * Initializes the mod during platform startup.
    */
-  @Override
-  public void onInitialize() {
+  public static void init() {
     ConfigManager.load();
     if (getConfig().isDebug()) {
       LOGGER.info("🔍 Cobblemon Patches debug logging is ENABLED.");
@@ -45,9 +46,9 @@ public class CobblemonPatches implements ModInitializer {
   /**
    * Registers lifecycle event listeners to maintain a global reference to the running MinecraftServer.
    */
-  private void events() {
-    ServerLifecycleEvents.SERVER_STARTING.register(minecraftServer -> CobblemonPatches.server = minecraftServer);
-    ServerLifecycleEvents.SERVER_STOPPED.register(minecraftServer -> {
+  private static void events() {
+    LifecycleEvent.SERVER_STARTING.register(minecraftServer -> CobblemonPatches.server = minecraftServer);
+    LifecycleEvent.SERVER_STOPPED.register(minecraftServer -> {
       CobblemonPatches.server = null;
       OpsUtil.clear();
     });

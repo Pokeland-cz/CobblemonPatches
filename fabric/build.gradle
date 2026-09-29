@@ -1,0 +1,71 @@
+plugins {
+    id "com.gradleup.shadow" version "8.3.5"
+}
+
+architectury {
+    platformSetupLoomIde()
+    fabric()
+}
+
+configurations {
+    common
+    shadowCommon
+    common.canBeResolved = true
+    common.canBeConsumed = false
+    shadowCommon.canBeResolved = true
+    shadowCommon.canBeConsumed = false
+    compileClasspath.extendsFrom common
+    runtimeClasspath.extendsFrom common
+    developmentFabric.extendsFrom common
+}
+
+dependencies {
+    modImplementation "net.fabricmc:fabric-loader:${rootProject.fabric_loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_api_version}"
+    modImplementation "net.fabricmc:fabric-language-kotlin:${rootProject.fabric_kotlin_version}"
+    modImplementation "dev.architectury:architectury-fabric:${rootProject.architectury_version}"
+    modImplementation "com.cobblemon:fabric:${rootProject.cobblemon_version}"
+    implementation include("com.github.ben-manes.caffeine:caffeine:${rootProject.caffeine_version}")
+
+    common(project(path: ":common", configuration: "namedElements")) { transitive false }
+    shadowCommon(project(path: ":common", configuration: "transformProductionFabric")) { transitive false }
+}
+
+processResources {
+    var properties = [
+        "version"          : version,
+        "minecraft_version": rootProject.minecraft_version,
+        "loader_version"   : rootProject.fabric_loader_version,
+        "cobblemon_version": rootProject.cobblemon_version
+    ]
+    for (property in properties) {
+        inputs.property property.key, property.value
+    }
+    filteringCharset = "UTF-8"
+
+    filesMatching("fabric.mod.json") {
+        expand properties
+    }
+}
+
+shadowJar {
+    exclude "architectury.common.json"
+    configurations = [project.configurations.shadowCommon]
+    archiveClassifier = "dev-shadow"
+}
+
+remapJar {
+    inputFile.set shadowJar.archiveFile
+    dependsOn shadowJar
+    archiveClassifier = null
+}
+
+jar {
+    archiveClassifier = "dev"
+}
+
+sourcesJar {
+    def commonSources = project(":common").sourcesJar
+    dependsOn commonSources
+    from commonSources.archiveFile.map { zipTree(it) }
+}

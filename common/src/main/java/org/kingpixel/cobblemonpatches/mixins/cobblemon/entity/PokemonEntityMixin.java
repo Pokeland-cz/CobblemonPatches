@@ -13,7 +13,7 @@ import com.cobblemon.mod.common.api.battles.model.PokemonBattle;
 import com.cobblemon.mod.common.battles.BattleRegistry;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import dev.architectury.event.events.common.TickEvent;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
@@ -83,7 +83,7 @@ public abstract class PokemonEntityMixin extends ShoulderRidingEntity {
    */
   @Inject(method = "<clinit>", at = @At("TAIL"))
   private static void registerEndServerTickListener(CallbackInfo ci) {
-    ServerTickEvents.END_SERVER_TICK.register(server -> {
+    TickEvent.SERVER_POST.register(server -> {
       PokemonEntity pokemonEntity;
       while ((pokemonEntity = DESPAWN_QUEUE.poll()) != null) {
         if (canSafelyDiscard(pokemonEntity)) {

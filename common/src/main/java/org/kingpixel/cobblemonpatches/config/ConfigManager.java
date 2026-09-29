@@ -7,7 +7,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import net.fabricmc.loader.api.FabricLoader;
+import dev.architectury.platform.Platform;
 import org.kingpixel.cobblemonpatches.CobblemonPatches;
 
 /**
@@ -15,7 +15,7 @@ import org.kingpixel.cobblemonpatches.CobblemonPatches;
  */
 public class ConfigManager {
   private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-  private static final Path CONFIG_PATH = FabricLoader.getInstance().getConfigDir().resolve("cobblemonpatches.json");
+  private static final Path CONFIG_PATH = Platform.getConfigFolder().resolve("cobblemonpatches.json");
   private static ModConfig config = load();
 
   private ConfigManager() {
