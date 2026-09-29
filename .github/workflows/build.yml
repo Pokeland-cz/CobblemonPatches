@@ -50,13 +50,13 @@ jobs:
 
       - name: Create GitHub Release
         run: |
-          gh release create "$TAG" build/libs/*.jar \
+          gh release create "$TAG" fabric/build/libs/*.jar neoforge/build/libs/*.jar \
             --title "Release $TAG" \
             --notes "Automated release for version $TAG"
 
       - name: Send Discord Notifications
         run: |
-          FILE=$(ls build/libs/*.jar | grep -v "sources" | head -n1)
+          FILE=$(ls fabric/build/libs/*.jar | grep -v "sources" | grep -v "dev-shadow" | head -n1)
 
           # Extraer changelog
           BASE=$(echo "$TAG" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
