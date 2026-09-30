@@ -6,7 +6,6 @@
   "mixins": [
     "async.ChunkTicketManagerMixin",
     "async.EntityCallBackMixin",
-    "async.EntityRemoveAsyncMixin",
     "async.PlayerManagerMixin",
     "async.ServerEntityManagerMixin",
     "cobblemon.EVsMixin",

@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.2.1] - 01-10-2026
+
+> [!WARNING]
+> **Testing Required**: Please test this build thoroughly in a testing/staging environment before deploying to
+> production servers.
+
+### Removed
+
+- **Off-Thread Entity Removal Marshaller**: Removed `EntityRemoveAsyncMixin` to avoid invasive monkey-patching of vanilla Minecraft's `Entity` class and masking third-party threading violations. Off-thread operations are reported with stack trace warnings (`AsyncCatcherFabric`) so offending mods can be identified and fixed in their source.
+
 ## [1.2.0] - 27-09-2026
 
 > [!WARNING]
