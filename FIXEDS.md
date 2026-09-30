@@ -30,7 +30,7 @@ A comprehensive list of all optimizations, bug fixes, crash preventions, and ant
 - **Problem**: `getCODEC()` and `getSTREAM_CODEC()` duplicated the entire backing map of `PokemonStats` into a new `HashMap` on every network sync and save.
 - **Solution**: Serializes directly using the existing backing map of `PokemonStats`, eliminating unnecessary map cloning.
 
-### 📦 PC Storage & PC Box Iterations (`PCStoreMixin`, `PCBoxMixin`, `PokemonStoreMixin`)
+### 📦 PC Storage & PC Box Iterations (`PCStoreMixin`, `PCBoxMixin`)
 - **Problem**: Iterating through player PC boxes duplicated entire `ArrayList`s, causing severe tick stalls on servers with high player counts.
 - **Solution**: Replaced list duplication with direct, memory-friendly iterator lookups and optimized store data retrieval.
 
@@ -58,9 +58,6 @@ A comprehensive list of all optimizations, bug fixes, crash preventions, and ant
 - **Problem**: During entity cramming and collision checks, `getScoreboardTeam()` and `getOwner()` searched the server's global player manager by UUID dozens of times per entity per tick, even for wild Pokémon.
 - **Solution**: Short-circuits owner lookups for wild Pokémon and caches resolved owner entities per-tick on `PokemonEntity`.
 
-### 🌿 Spawning Pipeline Tag & Identifier Condition Memoization (`RegistryLikeTagConditionMixin`, `RegistryLikeIdentifierConditionMixin`)
-- **Problem**: In `FlatSpawnablePositionWeightedSelector.select()` and `Spawner.getMatchingSpawns()`, Cobblemon tests hundreds of spawn detail conditions against every position in the spawning zone. `RegistryLikeTagCondition.fits()` evaluated `t.isIn(tag)` continuously, triggering thousands of `ImmutableCollections$SetN.contains()` and `TagKey.equals()` comparisons per tick.
-- **Solution**: Implemented thread-safe $O(1)$ concurrent memoization caches on `RegistryLikeTagCondition` and `RegistryLikeIdentifierCondition`. Once a registry entry (e.g., `minecraft:grass_block` or `minecraft:plains`) is evaluated against a tag or identifier condition, subsequent checks during the spawning pass hit the cache in $O(1)$ time, eliminating the largest CPU consumer in Cobblemon's spawning logic.
 
 ### ⏳ Optimized Entity Aging Despawner (`CobblemonAgingDespawnerMixin`)
 - **Problem**: `CobblemonAgingDespawner.shouldDespawn()` executed every tick for every active Pokémon entity in the world, iterating through all world players and executing `Math.sqrt` distance calculations continuously (taking 1.30% / 3.9s of total server CPU).
@@ -121,8 +118,8 @@ A comprehensive list of all optimizations, bug fixes, crash preventions, and ant
 - **Safe Pokémon Recall (`SentOutStateMixin`)**: Added null-safety checks for `CobblemonPatches.server` to prevent `NullPointerException` crashes during Pokémon recall.
 - **Server Lifecycle Cleanup (`CobblemonPatches`, `OpsUtil`)**: Added `SERVER_STOPPED` lifecycle listener that clears `CobblemonPatches.server` and cached `DynamicOps`, eliminating memory leaks across server stops and world reloads.
 - **Thread-Safe Entity Despawn Queue (`PokemonEntityMixin`)**: Converted `DESPAWN_QUEUE` to a thread-safe `ConcurrentLinkedQueue` flushed at `END_SERVER_TICK`, preventing concurrency desyncs and multi-dimension race conditions.
-- **Store UUID Cache Consistency (`PokemonStoreMixin`)**: Intercepts `initialize()` and `rebuildPokemonByUuid()` to purge stale entries from the Caffeine UUID cache.
 - **Fault-Tolerant Autosave Pipeline (`FileBackedPokemonStoreFactoryMixin`)**: Configurable `autosaveStoresPerTick` rate with isolated `try-catch` error handling to prevent individual store save errors from stalling the entire server tick.
 - **Coordinate Hash Modulo Safety (`PCBlockEntityTickerMixin`, `PokemonPastureBlockEntityTickerMixin`)**: Implemented `Math.floorMod` to guarantee non-negative modulo distribution regardless of coordinate hash code boundaries.
 - **Disconnected Player Battle Entity Cleanup (`PokemonBattleMixin`, `PokemonEntityMixin`)**: Fixed an exploit where switching servers (`/spawn`) during battle animations left player Pokémon entities stranded in the world, enabling held item duplication (e.g. Mega Stones like Blastoisinite). `PokemonBattle#end` now immediately discards and deactivates Pokémon entities belonging to offline players, `canSafelyDiscard` allows offline player entities to be cleanly purged, and a periodic tick watchdog removes any orphaned player Pokémon whose owner is offline.
 - **Asynchronous Entity Removal Dispatcher (`EntityRemoveAsyncMixin`)**: Wrapped `Entity#remove` to detect off-thread execution (e.g., Netty IO threads triggered by `ServerPlayConnectionEvents.DISCONNECT` in third-party trainer/NPC mods like Radical Cobblemon Trainers) and seamlessly marshal the call onto the main server thread, preventing `AsyncCatcher` crashes and chunk entity manager concurrency corruption.
+- **Spawner Detector Cache Package Relocation (`DetectorCacheKey`, `HabitatBlockDetectorMixin`, `SaccharineLogSlatheredDetectorMixin`)**: Relocated `DetectorCacheKey` out of the mixin package to `org.kingpixel.cobblemonpatches.util`, resolving Sponge Mixin's `IllegalClassLoadError` caused by loading normal Java classes within mixin package boundaries.

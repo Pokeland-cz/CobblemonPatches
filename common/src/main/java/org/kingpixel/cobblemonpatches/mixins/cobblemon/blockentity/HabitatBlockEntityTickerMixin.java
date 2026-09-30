@@ -28,7 +28,7 @@ public abstract class HabitatBlockEntityTickerMixin {
       method = "TICKER$lambda$0",
       at = @At(
           value = "INVOKE",
-          target = "Lcom/cobblemon/mod/common/api/habitats/spawningstyle/ActivatedHabitatSpawning;activate(Lnet/minecraft/server/world/ServerWorld;Lnet/minecraft/util/math/BlockPos;)V",
+          target = "Lcom/cobblemon/mod/common/api/habitats/spawningstyle/ActivatedHabitatSpawning;activate",
           ordinal = 0
       )
   )

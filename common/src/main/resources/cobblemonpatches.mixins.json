@@ -16,8 +16,6 @@
     "cobblemon.PokemonStatsAccessor",
     "cobblemon.PropertiesCompletionProviderMixin",
     "cobblemon.command.ArgumentCommandNodeMixin",
-    "cobblemon.conditional.RegistryLikeIdentifierConditionMixin",
-    "cobblemon.conditional.RegistryLikeTagConditionMixin",
     "cobblemon.SpeciesMixin",
     "cobblemon.TypeGemCoreBlockMixin",
     "cobblemon.battles.AIBattleActorMixin",
@@ -52,7 +50,6 @@
     "cobblemon.storage.FileBackedPokemonStoreFactoryMixin",
     "cobblemon.storage.PCBoxMixin",
     "cobblemon.storage.PCStoreMixin",
-    "cobblemon.storage.PokemonStoreMixin",
     "cobblemon.things.SentOutStateMixin",
     "exploits.lag.SnowballEntityMixin",
     "scoreboard.ScoreboardMixin"

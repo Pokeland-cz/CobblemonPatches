@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  *
  * @author Carlos Varas Alonso
  */
-@Mixin(value = BattleSelectActionsHandler.class, remap = false)
+@Mixin(BattleSelectActionsHandler.class)
 public class BattleSelectActionsHandlerMixin {
 
   /**

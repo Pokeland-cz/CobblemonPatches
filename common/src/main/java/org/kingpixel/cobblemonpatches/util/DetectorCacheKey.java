@@ -1,4 +1,4 @@
-package org.kingpixel.cobblemonpatches.mixins.cobblemon.spawning;
+package org.kingpixel.cobblemonpatches.util;
 
 import com.cobblemon.mod.common.api.spawning.spawner.Spawner;
 import com.cobblemon.mod.common.api.spawning.spawner.SpawningZoneInput;

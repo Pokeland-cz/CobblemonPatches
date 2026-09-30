@@ -6,6 +6,7 @@ import com.cobblemon.mod.common.api.spawning.spawner.Spawner;
 import com.cobblemon.mod.common.api.spawning.spawner.SpawningZoneInput;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import org.kingpixel.cobblemonpatches.util.DetectorCacheKey;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import org.spongepowered.asm.mixin.Mixin;
@@ -62,11 +63,11 @@ public abstract class HabitatBlockDetectorMixin {
    */
   @WrapOperation(
       method = "detectFromInput",
-      at = @At(
-          value = "INVOKE",
-          target = "Lnet/minecraft/world/entity/ai/village/poi/PoiManager;findAll(Ljava/util/function/Predicate;Ljava/util/function/Predicate;Lnet/minecraft/core/BlockPos;ILnet/minecraft/world/entity/ai/village/poi/PoiManager$Occupancy;)Ljava/util/stream/Stream;",
-          remap = false
-      )
+      at = {
+          @At(value = "INVOKE", target = "findAll"),
+          @At(value = "INVOKE", target = "method_21647")
+      },
+      require = 0
   )
   private Stream<BlockPos> cobblemonPatches$clampHabitatSearchRadius(
       PoiManager instance,

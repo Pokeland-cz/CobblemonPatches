@@ -6,6 +6,7 @@ import com.cobblemon.mod.common.api.spawning.spawner.Spawner;
 import com.cobblemon.mod.common.api.spawning.spawner.SpawningZoneInput;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import org.kingpixel.cobblemonpatches.util.DetectorCacheKey;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;

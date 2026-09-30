@@ -1,13 +1,13 @@
 package org.kingpixel.cobblemonpatches.mixins.cobblemon.entity;
 
 import com.cobblemon.mod.common.entity.pokeball.EmptyPokeBallEntity;
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.projectile.ThrowableItemProjectile;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * Mixin into {@link EmptyPokeBallEntity} to prevent {@link NullPointerException} crashes
@@ -25,25 +25,19 @@ public abstract class EmptyPokeballEntityMixin extends ThrowableItemProjectile {
    * @param f          z position
    * @param world      world instance
    */
-  public EmptyPokeballEntityMixin(EntityType<? extends ThrowableItemProjectile> entityType, double d, double e, double f, Level world) {
+  protected EmptyPokeballEntityMixin(EntityType<? extends ThrowableItemProjectile> entityType, double d, double e, double f, Level world) {
     super(entityType, d, e, f, world);
   }
 
   /**
    * Guards beginCapture execution to ensure the throwing owner entity is still present and valid.
    *
-   * @param instance empty pokeball entity
-   * @param original wrapped operation
-   * @author MemencioPerez
-   * @reason There seems to be a rare case where a NullPointerException can
-   * be thrown if a player throws a PokeBall and leaves the server after it
-   * beams the Pokémon and starts falling and the PokeBall lands in a block
-   * in the next server tick, because null cannot be cast to LivingEntity
-   * in the EmptyPokeBallEntity#beginCapture method
+   * @param ci callback info
    */
-  @WrapOperation(method = "onHit", at = @At(value = "INVOKE", target = "Lcom/cobblemon/mod/common/entity/pokeball/EmptyPokeBallEntity;beginCapture()V"))
-  private void guardBeginCapture(EmptyPokeBallEntity instance, Operation<Void> original) {
-    if (this.getOwner() == null) return;
-    original.call(instance);
+  @Inject(method = "beginCapture", at = @At("HEAD"), cancellable = true, remap = false)
+  private void guardBeginCapture(CallbackInfo ci) {
+    if (this.getOwner() == null) {
+      ci.cancel();
+    }
   }
 }

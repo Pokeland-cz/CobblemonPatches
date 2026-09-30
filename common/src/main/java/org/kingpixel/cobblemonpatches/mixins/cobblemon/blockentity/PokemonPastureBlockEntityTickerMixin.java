@@ -34,7 +34,7 @@ public abstract class PokemonPastureBlockEntityTickerMixin {
       method = "TICKER$lambda$0",
       at = @At(
           value = "INVOKE",
-          target = "Lcom/cobblemon/mod/common/block/entity/PokemonPastureBlockEntity;getInRangeViewerCount$default(Lcom/cobblemon/mod/common/block/entity/PokemonPastureBlockEntity;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;DILjava/lang/Object;)I"
+          target = "Lcom/cobblemon/mod/common/block/entity/PokemonPastureBlockEntity;getInRangeViewerCount$default"
       )
   )
   private static int cobblemonPatches$throttlePastureViewerCheck(
