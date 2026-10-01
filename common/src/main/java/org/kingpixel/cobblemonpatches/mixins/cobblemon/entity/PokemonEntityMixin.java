@@ -102,6 +102,21 @@ public abstract class PokemonEntityMixin extends ShoulderRidingEntity {
     });
   }
 
+  /**
+   * Determines whether a Pokémon entity can safely be discarded from the world.
+   * <p>
+   * This check governs entity lifecycle state and prevents both softlocks and exploits:
+   * <ul>
+   *   <li>Prevents battle softlocks by ensuring entities in active battles are not removed
+   *       when chunk tracking stops or players walk away.</li>
+   *   <li>Prevents item duplication exploits and orphaned ghost entities by allowing immediate
+   *       purging of player-owned Pokémon whose owner has disconnected or changed servers.</li>
+   *   <li>Protects tethered pasture Pokémon from unintended removal.</li>
+   * </ul>
+   *
+   * @param entity the Pokémon entity to evaluate
+   * @return {@code true} if the entity can safely be discarded; {@code false} otherwise
+   */
   @Unique
   private static boolean canSafelyDiscard(PokemonEntity entity) {
     if (entity == null || entity.isRemoved()) {
@@ -117,6 +132,12 @@ public abstract class PokemonEntityMixin extends ShoulderRidingEntity {
     return entity.getBattleId() == null && !entity.isBattling();
   }
 
+  /**
+   * Safely discards a Pokémon entity, cleanly terminating any linked battle and resetting
+   * its Pokémon data state back to inactive.
+   *
+   * @param entity the Pokémon entity to discard and deactivate
+   */
   @Unique
   private static void discardAndDeactivate(PokemonEntity entity) {
     if (entity.getBattleId() != null) {
